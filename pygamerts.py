@@ -519,7 +519,12 @@ class Viewer(object):
     height = 0
     images = {}
     sounds = {}
-    menu =  {"main":            ["resume", "settings", "credits", "quit" ],
+    menu =  {"main":            ["resume", "settings", "credits", "quit", "Anton", "peter" ],
+            "Anton":            ["back", "Anton nerven", "Anton Schokokekse geben", "Anton schlagen", "Anton einen Lambourghini kaufen", "Anton einen diamanthockeyschläger geben"],
+            "peter":            ["back", "peter reich machen", "peter Schokokekse geben", "peter streicheln", "peter einen Laboughini kaufen", "peter einen diamanthockeyschläger geben", "nicht nett sein"],
+            "peter reich machen": ["back", "peter geld geben", "peter Firma schenken", "ein Treffen für peter mit dem König der anderen Welt ausmachen"],
+            "ein Treffen für peter mit dem König der anderen Welt ausmachen": ["back", "den könig der anderen Welt einladen"],
+            "nicht nett sein":  ["angreifen", "verhandlungen abbrechen"],
             #main
             "settings":        ["back", "video", "difficulty", "reset all values"],
             #settings
@@ -729,6 +734,24 @@ class Viewer(object):
                             # direct action
                         elif text == "credits":
                             Flytext(x=700, y=400, text="by Bigm0 and BakTheBig", fontsize = 100)  
+                        elif text == "Anton schlagen":
+                            Flytext(pos=pygame.math.Vector2(100,-200),
+                            text = "Anton sagt autsch!",
+                            max_age = 5,
+                            move=pygame.math.Vector2(0,20)
+                            )
+                        elif text == "peter Schokokekse geben":
+                            Flytext(pos=pygame.math.Vector2(100,-200),
+                            text ="mmmmmmmmmmhhhhhh!",
+                            max_age = 5,
+                            move=pygame.math.Vector2(0,20)
+                            )
+                        elif text == "Anton einen Lambourghini kaufen":
+                            Flytext(pos=pygame.math.Vector2(1000,-200),
+                            text ="Ich muss dich noch schnell überfahren bevor du ihn bekommst,Anton!",
+                            max_age = 5,
+                            move=pygame.math.Vector2(0,20)
+                            )    
 
                         if Viewer.name == "resolution":
                             # text is something like 800x600
@@ -750,6 +773,9 @@ class Viewer(object):
                                 #Viewer.menucommandsound.play()
                                 Viewer.fullscreen = False
                                 self.set_resolution()
+                        
+                        
+                        
                         
             # ------delete everything on screen-------
             self.screen.blit(self.background, (0, 0))
@@ -903,3 +929,4 @@ class Viewer(object):
 
 if __name__ == '__main__':
     Viewer(1430,800).run()
+
