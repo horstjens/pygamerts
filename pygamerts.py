@@ -388,6 +388,31 @@ class Ballista(VectorSprite):
             m *= 150    
             Javelin(pos=p,move=m, angle= self.angle, bossnumber=self.number)
 
+class Tile(VectorSprite):
+    
+    def _overwrite_parameters(self):
+        legend = {".": ( 0,0,255),
+                  "a": (173,216,230),
+                  "b": (229,229,229),
+                  "c": (191,191,191),
+                  "d": (144,238,144),
+                  "e": (0,128,0)
+                  }
+        if self.colorchar in legend:
+            self.color = legend[self.colorchar]
+        else:
+            self.color = (255,193,203)
+                      
+        
+    def create_image(self):
+        self.image = pygame.surface.Surface((self.tilesize, self.tilesize))
+        self.image.fill((self.color))
+        self.image.set_colorkey((0,0,0))
+        self.image0 = self.image.copy()
+        self.rect = self.image.get_rect()
+        
+         
+
 class Catapult(VectorSprite):
     
     def _overwrite_parameters(self):
@@ -519,39 +544,24 @@ class Viewer(object):
     height = 0
     images = {}
     sounds = {}
-    menu =  {"main":            ["resume", "settings", "credits", "quit", "Anton", "peter" ],
-            "Anton":            ["back", "Anton nerven", "Anton Schokokekse geben", "Anton schlagen", "Anton einen Lambourghini kaufen", "Anton einen diamanthockeyschläger geben"],
-            "peter":            ["back", "peter reich machen", "peter Schokokekse geben", "peter streicheln", "peter einen Laboughini kaufen", "peter einen diamanthockeyschläger geben", "nicht nett sein"],
-            "peter reich machen": ["back", "peter geld geben", "peter Firma schenken", "ein Treffen für peter mit dem König der anderen Welt ausmachen"],
-            "ein Treffen für peter mit dem König der anderen Welt ausmachen": ["back", "den könig der anderen Welt einladen"],
-            "nicht nett sein":  ["angreifen", "verhandlungen abbrechen"],
-            #main
+    menu = {#main
+            "main":            ["resume", "map", "settings", "credits", "quit" ],
+            
+            #map
+            "map":             ["back", "load a map", "set water height", "set tile size"],
+            "load a map":      ["back"],
+            "set water height":["back", "no water"],
+            "set tile size":   ["back", "1x1", "2x2", "5x5", "10x10", "20x20", "32x23", "64x64", "128x129"],
+            
             "settings":        ["back", "video", "difficulty", "reset all values"],
+            
             #settings
-            "difficulty":      ["back", "powerups", "bosshealth", "playerhealth"],
             "video":           ["back", "resolution", "fullscreen"],
-            #difficulty
-            "bosshealth":      ["back", "1000", "2500", "5000", "10000"],
-            "playerhealth":    ["back", "100", "250", "500", "1000"],
-            "powerups":        ["back", "laser", "bonusrockets", "heal", "shield", "speed"],
-            #powerups
-            "bonusrockets":    ["back", "bonusrocketincrease", "bonusrocket duration"],
-            "laser":           ["back", "laserdamage", "laser duration"],
-            "heal":            ["back", "heal effectiveness"],
-            "shield":          ["back", "bossrocket deflection", "shield duration"],
-            "speed":           ["back", "speed increase", "speed duration"],
-            #powerup effects
-            "bonusrocketincrease": ["back", "1", "2", "3", "5", "10"],
-            "bonusrocket duration": ["back", "10", "30", "60"],
-            "laserdamage":     ["back", "3", "5", "10"],
-            "laser duration": ["back", "10", "30", "60"],            
-            "heal effectiveness": ["back", "50", "100", "250", "full health"],
-            "bossrocket deflection": ["back", "true", "false"],
-            "shield duration": ["back", "10", "30", "60"],
-            "speed increase":  ["back", "3", "5", "10", "15"],
-            "speed duration":  ["back", "10", "30", "60"],
+            
+
+            
             #video
-            "resolution":      ["back", "720p", "1080p", "1440p", "4k"],
+            "resolution":      ["back"],
             "fullscreen":      ["back", "true", "false"]
             }
     
@@ -575,7 +585,11 @@ class Viewer(object):
         self.clock = pygame.time.Clock()
         self.fps = fps
         self.playtime = 0.0
+        self.rawmap = []
+        self.waterheight = ""
+        self.tilesize = 32
         # -- menu --
+        
         li = ["back"]
         for i in pygame.display.list_modes():
             # li is something like "(800, 600)"
@@ -586,6 +600,11 @@ class Viewer(object):
             li.append(str(x)+"x"+str(y))
         Viewer.menu["resolution"] = li
         self.set_resolution()
+        # --- get maps ---
+        for root, dirs, files in os.walk("."):
+            for f in files:
+                if f[-4:] == ".txt" and f[:3] == "map":
+                    Viewer.menu["load a map"].append(f)
         
         
         # ------ background images ------
@@ -678,6 +697,7 @@ class Viewer(object):
         #self.mousegroup = pygame.sprite.Group()
         
         VectorSprite.groups = self.allgroup
+        Tile.groups = self.allgroup
         Flytext.groups = self.allgroup, self.flytextgroup
         #Catapult.groups = self.allgroup,
         #self.player1 =  Player(imagename="player1", warp_on_edge=True, pos=pygame.math.Vector2(Viewer.width/2-100,-Viewer.height/2))
@@ -734,24 +754,7 @@ class Viewer(object):
                             # direct action
                         elif text == "credits":
                             Flytext(x=700, y=400, text="by Bigm0 and BakTheBig", fontsize = 100)  
-                        elif text == "Anton schlagen":
-                            Flytext(pos=pygame.math.Vector2(100,-200),
-                            text = "Anton sagt autsch!",
-                            max_age = 5,
-                            move=pygame.math.Vector2(0,20)
-                            )
-                        elif text == "peter Schokokekse geben":
-                            Flytext(pos=pygame.math.Vector2(100,-200),
-                            text ="mmmmmmmmmmhhhhhh!",
-                            max_age = 5,
-                            move=pygame.math.Vector2(0,20)
-                            )
-                        elif text == "Anton einen Lambourghini kaufen":
-                            Flytext(pos=pygame.math.Vector2(1000,-200),
-                            text ="Ich muss dich noch schnell überfahren bevor du ihn bekommst,Anton!",
-                            max_age = 5,
-                            move=pygame.math.Vector2(0,20)
-                            )    
+                        
 
                         if Viewer.name == "resolution":
                             # text is something like 800x600
@@ -773,9 +776,44 @@ class Viewer(object):
                                 #Viewer.menucommandsound.play()
                                 Viewer.fullscreen = False
                                 self.set_resolution()
-                        
-                        
-                        
+                        if Viewer.name == "set water height":
+                            if text != "back":
+                                self.waterheight = text
+                        if Viewer.name == "load a map":
+                            if text[-4:] == ".txt" and text[:3] == "map":
+                                with open(text, "r") as f:
+                                    lines = f.readlines()
+                                for line in lines:
+                                    row = []
+                                    for char in line:
+                                        row.append(char)
+                                    self.rawmap.append(row)
+                                Flytext(text="map loaded: {}".format(text), pos=pygame.math.Vector2(300, -100), move=pygame.math.Vector2(0,20))
+                                # add exiting chars in rawmap to water high
+                                mychars = []
+                                for line in self.rawmap:
+                                    for char in line:
+                                        if char == "\n":
+                                            pass
+                                        elif char == ".":
+                                            pass
+                                        else:
+                                            if char in mychars:
+                                                pass
+                                            else:
+                                                mychars.append(char)
+                                    
+                                if len(mychars) > 0:
+                                    Flytext(text="sorting mychars....", move=pygame.math.Vector2(0,20))
+                                    #print(mychars)                
+                                    mychars.sort()
+                                    #print(mychars)
+                                    for c in mychars:
+                                        Viewer.menu["set water height"].append(c)
+                                #print("map sucessfully added")
+                                #print(self.rawmap)
+                                
+                                    
                         
             # ------delete everything on screen-------
             self.screen.blit(self.background, (0, 0))
@@ -820,6 +858,12 @@ class Viewer(object):
         self.menu_run()
         pygame.mouse.set_visible(True)
         oldleft, oldmiddle, oldright  = False, False, False
+        if self.rawmap != []:
+            for y, line in enumerate(self.rawmap):
+                for x, char in enumerate(line):
+                    print("tilesize", self.tilesize)
+                    Tile(pos=pygame.math.Vector2(x*self.tilesize, -y*self.tilesize), tilesize = self.tilesize, colorchar = char)
+                    
         while running:
             #pygame.display.set_caption("player1 hp: {} player2 hp: {}".format(
             #                     self.player1.hitpoints, self.player2.hitpoints))
@@ -929,4 +973,3 @@ class Viewer(object):
 
 if __name__ == '__main__':
     Viewer(1430,800).run()
-
