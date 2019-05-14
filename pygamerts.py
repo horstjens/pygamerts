@@ -573,6 +573,7 @@ class Viewer(object):
         self.background.fill((255,255,255)) # fill background white
         self.clock = pygame.time.Clock()
         self.fps = fps
+        self.world = None
         self.playtime = 0.0
         self.rawmap = []
         self.waterheight = 0
@@ -580,6 +581,9 @@ class Viewer(object):
         self.world_offset_x = 0
         self.world_offset_y = 0
         self.world_zoom = 1
+        self.radarmap_size = 256
+        self.radarmap_zoom = 1.0
+        self.radarmap = pygame.surface.Surface((self.radarmap_size, self.radarmap_size))
         # -- menu --
         # --- create screen resolution list ---
         li = ["back"]
@@ -694,7 +698,9 @@ class Viewer(object):
         #self.b1 = Ballista()
         #self.c1 = Catapult()
    
-   
+    
+    
+       
     def menu_run(self):
         running = True
         pygame.mouse.set_visible(False)
@@ -732,7 +738,10 @@ class Viewer(object):
                             Viewer.cursor = 0
                             #Viewer.menuselectsound.play()
                         elif text == "resume":
-                            return
+                            if self.world is None:
+                                Flytext(text="You need to load a map first!", fontsize = 33, color = (200,0,0))
+                            else:
+                                return
                             #Viewer.menucommandsound.play()
                             #pygame.mixer.music.unpause()
                         elif text == "back":
@@ -817,6 +826,7 @@ class Viewer(object):
                                         row.append(number)
                                     self.rawmap.append(row)
                                 Flytext(text="map loaded: {}".format(text), pos=pygame.math.Vector2(300, -100), move=pygame.math.Vector2(0,20))
+                                self.world = True
                                 # add exiting chars in rawmap to water high
                                 #mynumbers = []
                                 #for line in self.rawmap:
