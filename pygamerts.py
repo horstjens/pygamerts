@@ -391,15 +391,9 @@ class Ballista(VectorSprite):
 class Tile(VectorSprite):
     
     def _overwrite_parameters(self):
-        legend = {".": ( 0,0,255),
-                  "a": (173,216,230),
-                  "b": (229,229,229),
-                  "c": (191,191,191),
-                  "d": (144,238,144),
-                  "e": (0,128,0)
-                  }
-        if self.colorchar in legend:
-            self.color = legend[self.colorchar]
+        
+        if self.colorchar in Viewer.legend:
+            self.color = Viewer.legend[self.colorchar]
         else:
             self.color = (255,193,203)
                       
@@ -466,6 +460,9 @@ class Flytext(VectorSprite):
     def _overwrite_parameters(self):
         self._layer = 7  # order of sprite layers (before / behind other sprites)
         self.r, self.g, self.b = self.color
+        if self.max_age is None:
+            self.max_age = 2
+        
         
     def create_image(self):
         self.image = make_text(self.text, (self.r, self.g, self.b), self.fontsize)  # font 22
@@ -514,25 +511,6 @@ class Explosion():
                   color=(red,green,blue), kill_on_edge = True)
 
 
-class World():
-    
-    tiles_x = 140
-    tiles_y = 90   
-    
-    
-    def __init__(self):
-        self.terrain = []
-        h = 100
-        for y in range(self.tiles_y):
-            line = []
-            for x in range(self.tiles_x):
-                height = random.randint(0,255)
-                height = max(0,height)
-                height = min(255,height)
-                line.append(height)
-            self.terrain.append(line)
-            
-   
             
 
         
@@ -542,14 +520,17 @@ class World():
 class Viewer(object):
     width = 0
     height = 0
+    world_width = 0
+    world_height = 0
     images = {}
     sounds = {}
     menu = {#main
             "main":            ["resume", "map", "settings", "credits", "quit" ],
             
             #map
-            "map":             ["back", "load a map", "set water height", "set tile size"],
+            "map":             ["back", "load a map", "set water height", "set tile size", "convert png to txt"],
             "load a map":      ["back"],
+            "convert png to txt": ["back"], 
             "set water height":["back", "no water"],
             "set tile size":   ["back", "1x1", "2x2", "5x5", "10x10", "20x20", "32x23", "64x64", "128x129"],
             
@@ -565,6 +546,14 @@ class Viewer(object):
             "fullscreen":      ["back", "true", "false"]
             }
     
+    
+    legend = {".": ( 0,0,255),
+              "a": (173,216,230),
+              "b": (229,229,229),
+              "c": (191,191,191),
+              "d": (144,238,144),
+              "e": (0,128,0)
+                  }
     
     #Viewer.menu["resolution"] = pygame.display.list_modes()
     history = ["main"]
@@ -586,10 +575,13 @@ class Viewer(object):
         self.fps = fps
         self.playtime = 0.0
         self.rawmap = []
-        self.waterheight = ""
+        self.waterheight = 0
         self.tilesize = 32
+        self.world_offset_x = 0
+        self.world_offset_y = 0
+        self.world_zoom = 1
         # -- menu --
-        
+        # --- create screen resolution list ---
         li = ["back"]
         for i in pygame.display.list_modes():
             # li is something like "(800, 600)"
@@ -600,11 +592,8 @@ class Viewer(object):
             li.append(str(x)+"x"+str(y))
         Viewer.menu["resolution"] = li
         self.set_resolution()
-        # --- get maps ---
-        for root, dirs, files in os.walk("."):
-            for f in files:
-                if f[-4:] == ".txt" and f[:3] == "map":
-                    Viewer.menu["load a map"].append(f)
+        # ----- get png files -----
+        
         
         
         # ------ background images ------
@@ -627,7 +616,7 @@ class Viewer(object):
         self.prepare_sprites()
         self.loadbackground()
         self.load_sounds()
-        self.world = World()
+        ##self.world = World()
         #print(self.world)
         
         
@@ -655,11 +644,11 @@ class Viewer(object):
         self.background.convert()
         
     
-    def paint_world(self):
-        for y, line in enumerate(self.world.terrain):
-            for x, tile in enumerate(line):
-                h = self.world.terrain[y][x]
-                pygame.draw.rect(self.screen,(h,h,h), (x*10, y*10,10,10))
+    #def paint_world(self):
+    #    for y, line in enumerate(self.world.terrain):
+    #        for x, tile in enumerate(line):
+    #            h = self.world.terrain[y][x]
+    #            pygame.draw.rect(self.screen,(h,h,h), (x*10, y*10,10,10))
         
     
     def create_selected(self, original_name):
@@ -697,7 +686,7 @@ class Viewer(object):
         #self.mousegroup = pygame.sprite.Group()
         
         VectorSprite.groups = self.allgroup
-        Tile.groups = self.allgroup
+        #Tile.groups = self.allgroup
         Flytext.groups = self.allgroup, self.flytextgroup
         #Catapult.groups = self.allgroup,
         #self.player1 =  Player(imagename="player1", warp_on_edge=True, pos=pygame.math.Vector2(Viewer.width/2-100,-Viewer.height/2))
@@ -753,8 +742,9 @@ class Viewer(object):
                             #Viewer.menucommandsound.play()
                             # direct action
                         elif text == "credits":
-                            Flytext(x=700, y=400, text="by Bigm0 and BakTheBig", fontsize = 100)  
+                            Flytext(text="by Bigm0 and BakTheBig", fontsize = 100, pos=pygame.math.Vector2(400, -100), move=pygame.math.Vector2(0, 10))  
                         
+                    
 
                         if Viewer.name == "resolution":
                             # text is something like 800x600
@@ -766,6 +756,21 @@ class Viewer(object):
                                 Viewer.height = y
                                 self.set_resolution()
                                 #Viewer.menucommandsound.play()
+                        
+                        if Viewer.name == "map":
+                            # --- get maps (map*.txt files) ---
+                            # --- get png files (*.png)
+                            Flytext(text="scanning all maps...", pos=pygame.math.Vector2(400, -100), move=pygame.math.Vector2(0, 10))
+                            for root, dirs, files in os.walk("."):
+                                for f in files:
+                                    if f[-4:] == ".txt" and f[:3] == "map":
+                                        if f not in Viewer.menu["load a map"]:
+                                             Viewer.menu["load a map"].append(f)
+                                    elif f[-4:] == ".png":
+                                        if f not in Viewer.menu["convert png to txt"]:
+                                             Viewer.menu["convert png to txt"].append(f)
+                                break # only this directory
+
                                     
                         if Viewer.name == "fullscreen":
                             if text == "true":
@@ -779,37 +784,56 @@ class Viewer(object):
                         if Viewer.name == "set water height":
                             if text != "back":
                                 self.waterheight = text
+                        if Viewer.name == "convert png to txt":
+                            if text != "back" and text[-4:] == ".png":
+                                name = "map" + text[:-4]+".txt"
+                                pic = pygame.image.load(text)
+                                lines = []
+                                for y in range(pic.get_height()):
+                                    line = []
+                                    for x in range(pic.get_width()):
+                                        color = pic.get_at((x,y))
+                                        line.append(color)
+                                        #print("color at ",x,y,"=",color)
+                                        # color is a tuple with r, g, b, and alpha?, all integers 0-255
+                                    lines.append(line)
+                                
+                                with open(name, "w") as f:
+                                    for line in lines:
+                                        textline = ""
+                                        for color in line:
+                                            textline += str(color[0]) + ","
+                                        f.write(textline+"\n")
+                                Flytext(text="map converted into txt file", pos=pygame.math.Vector2(400, -400), move=pygame.math.Vector2(0, 10))
+                                            
+                                    
                         if Viewer.name == "load a map":
                             if text[-4:] == ".txt" and text[:3] == "map":
                                 with open(text, "r") as f:
                                     lines = f.readlines()
                                 for line in lines:
                                     row = []
-                                    for char in line:
-                                        row.append(char)
+                                    for number in line.split(","):
+                                        row.append(number)
                                     self.rawmap.append(row)
                                 Flytext(text="map loaded: {}".format(text), pos=pygame.math.Vector2(300, -100), move=pygame.math.Vector2(0,20))
                                 # add exiting chars in rawmap to water high
-                                mychars = []
-                                for line in self.rawmap:
-                                    for char in line:
-                                        if char == "\n":
-                                            pass
-                                        elif char == ".":
-                                            pass
-                                        else:
-                                            if char in mychars:
-                                                pass
-                                            else:
-                                                mychars.append(char)
+                                #mynumbers = []
+                                #for line in self.rawmap:
+                                #    for number in line:
+                                #        if not number.i
+                                #        if number in mynumbers:
+                                #                pass
+                                #        else:
+                                #                mynumbers.append(number)
                                     
-                                if len(mychars) > 0:
-                                    Flytext(text="sorting mychars....", move=pygame.math.Vector2(0,20))
-                                    #print(mychars)                
-                                    mychars.sort()
-                                    #print(mychars)
-                                    for c in mychars:
-                                        Viewer.menu["set water height"].append(c)
+                                #if len(mynumbers) > 0:
+                                #    Flytext(text="sorting mynumbers....", move=pygame.math.Vector2(0,20))
+                                #    #print(mychars)                
+                                #    mynumbers.sort()
+                                #    #print(mychars)
+                                #    for n in mynumbers:
+                                #        Viewer.menu["set water height"].append(n)
                                 #print("map sucessfully added")
                                 #print(self.rawmap)
                                 
@@ -851,6 +875,42 @@ class Viewer(object):
             pygame.display.flip()
         #----------------------------------------------------- 
     
+    def make_worldmap(self):
+            print("generating map.....{} x {}".format(len(self.rawmap[1]), len(self.rawmap )))
+            self.screen.fill((255,128,128))
+            self.world = pygame.surface.Surface((len(self.rawmap[0])*self.tilesize, len(self.rawmap)*self.tilesize))
+            
+            for y, line in enumerate(self.rawmap):
+                for x, number in enumerate(line):
+                    if number == "\n":
+                        continue
+                    number = int(number)
+                    #print("das ist die line", line)
+                    #print("tilesize", self.tilesize)
+                    #Tile(pos=pygame.math.Vector2(x*self.tilesize, -y*self.tilesize), tilesize = self.tilesize, colorchar = char)
+                    # number is a height value from 0-255
+                    print("processing value of {} at pos x {} y {}".format(number, x, y))
+                    # water = blue
+                    if number <= self.waterheight:
+                        color = (0,0,255) # blue
+                    elif number < 64:
+                        color = (number, number, number)
+                    elif number < 128:
+                        color = (number, number+60, number+50) # brown
+                    elif number < 215:
+                        color = (44 + int(number/3), 255, 44+ int(number/3)) # green
+                    else:
+                        color = (255, number, 255)
+                        
+                    pygame.draw.rect(self.world, color, (x * self.tilesize, y * self.tilesize, self.tilesize, self.tilesize))
+            
+    
+    
+    def display_help(self):
+        Flytext(text="scroll map with cursor keys", pos = pygame.math.Vector2(400, -100))
+        Flytext(text="zoom map with mouse wheel or with + and - key", pos = pygame.math.Vector2(400,-150))
+        Flytext(text="set water level with PgUp key and PgDown key",  pos = pygame.math.Vector2(400,-200))
+    
     def run(self):
         """The mainloop"""
         
@@ -858,25 +918,36 @@ class Viewer(object):
         self.menu_run()
         pygame.mouse.set_visible(True)
         oldleft, oldmiddle, oldright  = False, False, False
+        # --------- blitting rawmap to world ------------
         if self.rawmap != []:
-            for y, line in enumerate(self.rawmap):
-                for x, char in enumerate(line):
-                    print("tilesize", self.tilesize)
-                    Tile(pos=pygame.math.Vector2(x*self.tilesize, -y*self.tilesize), tilesize = self.tilesize, colorchar = char)
+            self.make_worldmap()
+                    
                     
         while running:
-            #pygame.display.set_caption("player1 hp: {} player2 hp: {}".format(
-            #                     self.player1.hitpoints, self.player2.hitpoints))
-            
+          
             milliseconds = self.clock.tick(self.fps) #
             seconds = milliseconds / 1000
             self.playtime += seconds
-
+            pygame.display.set_caption("press h for help. FPS: {:8.3}".format(self.clock.get_fps()))
+            
             # -------- events ------
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                # ----- mouse wheel -----
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                     if event.button == 4:
+                         self.tilesize += 1
+                         self.make_worldmap()
+                     elif event.button == 5:
+                         self.tilesize -= 1
+                         self.make_worldmap()
+                
+                
                 # ------- pressed and released key ------
+                
+                
+                
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         running = False
@@ -894,8 +965,37 @@ class Viewer(object):
                         m = pygame.math.Vector2(200,0)
                         m.rotate_ip(self.c1.angle)
                         Cannonball(pos=p, move=m, bossnumber= self.c1.number)
+                    if event.key == pygame.K_PLUS:
+                        #self.world_zoom += 1
+                        self.tilesize *= 2
+                        self.make_worldmap()
+                    if event.key == pygame.K_MINUS:
+                        self.tilesize /= 2
+                        self.make_worldmap()
+                    if event.key == pygame.K_h:
+                        self.display_help()
             # ------------ pressed keys ------
             pressed_keys = pygame.key.get_pressed()
+            
+            # --------------- map scrolling ------------
+            if pressed_keys[pygame.K_UP]:
+                self.world_offset_y += 1
+            if pressed_keys[pygame.K_DOWN]: 
+                self.world_offset_y += -1
+            if pressed_keys[pygame.K_LEFT]:
+                self.world_offset_x += 1
+            if pressed_keys[pygame.K_RIGHT]: 
+                self.world_offset_x += -1
+            if pressed_keys[pygame.K_PAGEUP]:
+                self.waterheight += 5
+                self.waterheight = min(255, self.waterheight)
+                self.make_worldmap()
+                
+            if pressed_keys[pygame.K_PAGEDOWN]:
+                self.waterheight -= 5
+                self.waterheight = max(0, self.waterheight)
+                self.make_worldmap()
+            
             # ------- movement keys for player1 -------
             
             #if pressed_keys[pygame.K_l]:
@@ -937,14 +1037,14 @@ class Viewer(object):
                 
               
             # =========== delete everything on screen ==============
-            self.screen.blit(self.background, (0, 0))
+            self.screen.fill((0,0,0))
+            self.screen.blit(self.world, (self.world_offset_x,self.world_offset_y ))
                        
             
             ##self.paint_world()
                        
             # write text below sprites
-            write(self.screen, "FPS: {:8.3}".format(
-                self.clock.get_fps() ), x=Viewer.width-200, y=10, color=(200,200,200))
+            write(self.screen,  text="water: {}".format( self.waterheight ), x=Viewer.width-400, y=10, color=(100,0,200))
             
             # ----- collision detection between player and PowerUp---
             #for p in self.playergroup:
