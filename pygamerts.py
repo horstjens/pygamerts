@@ -827,6 +827,16 @@ class Viewer(object):
                                     self.rawmap.append(row)
                                 Flytext(text="map loaded: {}".format(text), pos=pygame.math.Vector2(300, -100), move=pygame.math.Vector2(0,20))
                                 self.world = True
+                                # ------ create radarmap ------
+                                self.radarmap = pygame.surface.Surface((len(self.rawmap), len(row)))
+                                for y, line in enumerate(self.rawmap):
+                                    for x, number in enumerate(line):
+                                        if number == "\n":
+                                            continue
+                                        print("number:", number)
+                                        pygame.draw.rect(self.radarmap, (int(number), int(number), int(number)), (x,y,1,1))
+                                self.radarmap.set_colorkey((0,0,0))
+                                        
                                 # add exiting chars in rawmap to water high
                                 #mynumbers = []
                                 #for line in self.rawmap:
@@ -1049,6 +1059,7 @@ class Viewer(object):
             # =========== delete everything on screen ==============
             self.screen.fill((0,0,0))
             self.screen.blit(self.world, (self.world_offset_x,self.world_offset_y ))
+            self.screen.blit(self.radarmap, (0,0))
                        
             
             ##self.paint_world()
