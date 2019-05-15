@@ -532,7 +532,7 @@ class Viewer(object):
             "load a map":      ["back"],
             "convert png to txt": ["back"], 
             "set water height":["back", "no water"],
-            "set tile size":   ["back", "1x1", "2x2", "5x5", "10x10", "20x20", "32x23", "64x64", "128x129"],
+            "set tile size":   ["back", "increase tile size", "decrease tile size", "tile size is now: "],
             
             "settings":        ["back", "video", "difficulty", "reset all values"],
             
@@ -578,6 +578,7 @@ class Viewer(object):
         self.rawmap = []
         self.waterheight = 0
         self.tilesize = 32
+        Viewer.menu["set tile size"][-1] = "(The current tile size is: {}x{} pixel)".format(self.tilesize, self.tilesize)
         self.world_offset_x = 0
         self.world_offset_y = 0
         self.world_zoom = 1
@@ -752,7 +753,14 @@ class Viewer(object):
                             # direct action
                         elif text == "credits":
                             Flytext(text="by Bigm0 and BakTheBig", fontsize = 100, pos=pygame.math.Vector2(400, -100), move=pygame.math.Vector2(0, 10))  
-                        
+                        elif text == "increase tile size":
+                            self.tilesize += 1
+                            Viewer.menu["set tile size"][-1] = "(The current tile size is: {}x{} pixel)".format(self.tilesize, self.tilesize)
+                        elif text == "decrease tile size":
+                            if self.tilesize > 1:
+                                self.tilesize -= 1
+                                Viewer.menu["set tile size"][-1] = "(The current tile size is: {}x{} pixel)".format(self.tilesize, self.tilesize)
+                           
                     
 
                         if Viewer.name == "resolution":
@@ -1059,8 +1067,12 @@ class Viewer(object):
             # =========== delete everything on screen ==============
             self.screen.fill((0,0,0))
             self.screen.blit(self.world, (self.world_offset_x,self.world_offset_y ))
-            self.screen.blit(self.radarmap, (0,0))
-                       
+            #self.screen.blit(self.radarmap, (0,0))
+            # ---- showing currently visible world map borders in radarmap -----
+            radar = self.radarmap.copy()
+            print("ox, oy, ox+width/tileset, oy+height/tileset", self.world_offset_x, self.world_offset_y , self.world_offset_x + int(Viewer.width / self.tilesize), self.world_offset_y + int(Viewer.height / self.tilesize))
+            pygame.draw.rect(radar, (80,255,80),  (-self.world_offset_x, -self.world_offset_y , int(Viewer.width / self.tilesize), int(Viewer.height / self.tilesize)),1)
+            self.screen.blit(radar, (Viewer.width-radar.get_width(),0))
             
             ##self.paint_world()
                        
