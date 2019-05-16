@@ -943,14 +943,56 @@ class Viewer(object):
                     # water = blue
                     if number <= self.waterheight:
                         color = (0,0,255) # blue
-                    elif number < 64:
-                        color = (number, number, number)
-                    elif number < 128:
-                        color = (number, number+60, number+50) # brown
-                    elif number < 215:
-                        color = (44 + int(number/3), 255, 44+ int(number/3)) # green
-                    else:
-                        color = (255, number, 255)
+                    elif number < 10:
+                        color = (255, 255, 255)
+                    elif number < 20:
+                        color = (178, 240, 235)
+                    elif number < 30:
+                        color = (179,241 ,204 )
+                    elif number < 40:
+                        color = (195,247 ,173) 
+                    elif number < 50:
+                        color = (231, 253, 178) 
+                    elif number < 60:
+                        color = (195, 227, 126) 
+                    elif number < 70:
+                        color = (94,189 ,63 ) 
+                    elif number < 80:
+                        color = (21,147 ,47 )
+                    elif number < 90:
+                        color = (49,136 ,58 )
+                    elif number < 100:
+                        color = (122,155 ,50 )
+                    elif number < 110:
+                        color = (192,173 ,34 )
+                    elif number < 120:
+                        color = (230,173 ,4 )
+                    elif number < 130:
+                        color = (245,161 ,1 )
+                    elif number < 140:
+                        color = (255,194 ,5 )
+                    elif number < 150:
+                        color = (255,147 ,74 )
+                    elif number < 160:
+                        color = (225,122 ,71 )
+                    elif number < 170:
+                        color = (202,89 ,75 )
+                    elif number < 180:
+                        color = (193,60 ,1 )
+                    elif number < 190:
+                        color = (117,66 ,21 )
+                    elif number < 200:
+                        color = (137,99 ,76 )
+                    elif number < 210:
+                        color = (164,142 ,121)
+                    elif number < 220:
+                        color = (176,176 ,176 )
+                    elif number < 230:
+                        color = (226,226 ,226 )
+                    else :
+                        color = (253,253 ,253 )
+                    
+                        
                         
                     pygame.draw.rect(self.world, color, (x * self.tilesize, y * self.tilesize, self.tilesize, self.tilesize))
             
