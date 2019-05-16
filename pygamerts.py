@@ -310,18 +310,27 @@ class Turret(VectorSprite):
         self.images = [] # list of images, biggest first, than always zoomed out
         self.original_width = 64
         self.original_height = 64
+
+    def update(self, seconds):
+        VectorSprite.update(self,seconds)
+        self.worldpos += self.move * seconds
         
     def create_image(self):
         """create biggest possible image"""
         self.image = pygame.surface.Surface((self.original_width, self.original_height))
-        pygame.draw.circle(self.image, (self.original_width //2, self.original_height // 2), self.original_width//2)
+        pygame.draw.circle(self.image, (128,0,128), (self.original_width //2, self.original_height // 2), self.original_width//2)
         self.image.set_colorkey((0,0,0))
         self.image.convert_alpha()
         self.image0 = self.image.copy()
         self.rect = self.image.get_rect()
+        img = self.image.copy()
         # --- list of images ----
-        #while True:
-        #    self.image.append(self.images
+        side = min(self.original_width, self.original_height)
+        while side > 1:
+            self.images.append(img)
+            side = int(side * 0.5)
+            img = pygame.transform.scale(img, (side, side))
+        
 
 
 
@@ -711,15 +720,20 @@ class Viewer(object):
         self.allgroup =  pygame.sprite.LayeredUpdates() # for drawing
         self.flytextgroup = pygame.sprite.Group()
         #self.mousegroup = pygame.sprite.Group()
-        
+        self.worldgroup = pygame.sprite.Group()
+        self.radargroup = pygame.sprite.Group()
         VectorSprite.groups = self.allgroup
         #Tile.groups = self.allgroup
         Flytext.groups = self.allgroup, self.flytextgroup
+        Turret.groups = self.allgroup, self.worldgroup, self.radargroup
+        
         #Catapult.groups = self.allgroup,
         #self.player1 =  Player(imagename="player1", warp_on_edge=True, pos=pygame.math.Vector2(Viewer.width/2-100,-Viewer.height/2))
         #self.player2 =  Player(imagename="player2", angle=180,warp_on_edge=True, pos=pygame.math.Vector2(Viewer.width/2+100,-Viewer.height/2))
         #self.b1 = Ballista()
         #self.c1 = Catapult()
+        for (x,y) in ((200,300), (800,300), (800, 800), (200,800), (500,550)):
+            Turret(pos=pygame.math.Vector2(x,-y))
    
     
     
@@ -928,6 +942,7 @@ class Viewer(object):
     def make_worldmap(self):
             print("generating map.....{} x {}".format(len(self.rawmap[1]), len(self.rawmap )))
             self.screen.fill((255,128,128))
+            # BUG! size limit 16384 for surface width / height ? 
             self.world = pygame.surface.Surface((len(self.rawmap[0])*self.tilesize, len(self.rawmap)*self.tilesize))
             
             for y, line in enumerate(self.rawmap):
@@ -941,14 +956,25 @@ class Viewer(object):
                     # number is a height value from 0-255
                     print("processing value of {} at pos x {} y {}".format(number, x, y))
                     # water = blue
+                    #if number <= self.waterheight:
+                    #    color = (0,0,255) # blue
+                    #elif number < 64:
+                    #    color = (number, number, number)
+                    #elif number < 128:
+                    #    color = (number, number+60, number+50) # brown
+                    #elif number < 215:
+                    #    color = (44 + int(number/3), 255, 44+ int(number/3)) # green
+                    #else:
+                    #    color = (255, number, 255)
+                                        # water = blue
                     if number <= self.waterheight:
                         color = (0,0,255) # blue
+                    #elif number < 10:
+                    #    color = (255, 255, 255)
                     elif number < 10:
-                        color = (255, 255, 255)
-                    elif number < 20:
-                        color = (178, 240, 235)
+                        color = (178, 240, 245-number)
                     elif number < 30:
-                        color = (179,241 ,204 )
+                        color = (179 + number - 10,241 ,204 )
                     elif number < 40:
                         color = (195,247 ,173) 
                     elif number < 50:
@@ -990,9 +1016,9 @@ class Viewer(object):
                     elif number < 230:
                         color = (226,226 ,226 )
                     else :
-                        color = (253,253 ,253 )
-                    
-                        
+                        color = (253,253 ,253 ) 
+                     
+                     
                         
                     pygame.draw.rect(self.world, color, (x * self.tilesize, y * self.tilesize, self.tilesize, self.tilesize))
             
@@ -1020,7 +1046,9 @@ class Viewer(object):
             milliseconds = self.clock.tick(self.fps) #
             seconds = milliseconds / 1000
             self.playtime += seconds
-            pygame.display.set_caption("press h for help. FPS: {:8.3}".format(self.clock.get_fps()))
+            text = "press h for help. FPS: {:8.3} ".format(self.clock.get_fps())
+            text += "Worldzoom: {}    world_offset_x: {}     world_offset_y: {}".format(self.world_zoom, self.world_offset_x, self.world_offset_y)
+            pygame.display.set_caption(text)
             
             # -------- events ------
             for event in pygame.event.get():
@@ -1058,11 +1086,16 @@ class Viewer(object):
                         m.rotate_ip(self.c1.angle)
                         Cannonball(pos=p, move=m, bossnumber= self.c1.number)
                     if event.key == pygame.K_PLUS:
-                        #self.world_zoom += 1
+                        self.world_zoom += 1
                         self.tilesize *= 2
                         self.make_worldmap()
+                        for o in self.worldgroup:
+                            o.pos *= 2
                     if event.key == pygame.K_MINUS:
+                        self.world_zoom -= 1
                         self.tilesize /= 2
+                        for o in self.worldgroup:
+                            o.pos *= 0.5
                         self.make_worldmap()
                     if event.key == pygame.K_h:
                         self.display_help()
@@ -1072,12 +1105,25 @@ class Viewer(object):
             # --------------- map scrolling ------------
             if pressed_keys[pygame.K_UP]:
                 self.world_offset_y += 1
+                for o in self.worldgroup:
+                    o.worldpos.y += 1
+                    o.pos.y -= 1
             if pressed_keys[pygame.K_DOWN]: 
                 self.world_offset_y += -1
+                for o in self.worldgroup:
+                    o.worldpos.y -= 1
+                    o.pos.y += 1
             if pressed_keys[pygame.K_LEFT]:
                 self.world_offset_x += 1
+                for o in self.worldgroup:
+                    o.worldpos.x += 1
+                    o.pos.x += 1
+                    print(o.pos)
             if pressed_keys[pygame.K_RIGHT]: 
                 self.world_offset_x += -1
+                for o in self.worldgroup:
+                    o.worldpos.x -= 1
+                    o.pos.x -= 1
             if pressed_keys[pygame.K_PAGEUP]:
                 self.waterheight += 5
                 self.waterheight = min(255, self.waterheight)
@@ -1131,6 +1177,9 @@ class Viewer(object):
             # =========== delete everything on screen ==============
             self.screen.fill((0,0,0))
             self.screen.blit(self.world, (self.world_offset_x,self.world_offset_y ))
+            
+            
+            
             #self.screen.blit(self.radarmap, (0,0))
             # ---- showing currently visible world map borders in radarmap -----
             radar = self.radarmap.copy()
@@ -1151,6 +1200,8 @@ class Viewer(object):
             #    for o in crashgroup:
             #            Explosion(o.pos, red=128, green=0, blue=128)
             #            o.kill()
+            
+            
             
                    
             # ================ UPDATE all sprites =====================
