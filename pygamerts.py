@@ -303,6 +303,28 @@ class VectorSprite(pygame.sprite.Sprite):
                 self.pos.y = 0
 
 
+class Turret(VectorSprite):
+    
+    def _overwrite_parameters(self):
+        self.worldpos = pygame.math.Vector2(self.pos.x, self.pos.y)
+        self.images = [] # list of images, biggest first, than always zoomed out
+        self.original_width = 64
+        self.original_height = 64
+        
+    def create_image(self):
+        """create biggest possible image"""
+        self.image = pygame.surface.Surface((self.original_width, self.original_height))
+        pygame.draw.circle(self.image, (self.original_width //2, self.original_height // 2), self.original_width//2)
+        self.image.set_colorkey((0,0,0))
+        self.image.convert_alpha()
+        self.image0 = self.image.copy()
+        self.rect = self.image.get_rect()
+        # --- list of images ----
+        #while True:
+        #    self.image.append(self.images
+
+
+
 class Javelin(VectorSprite):
     
     def _overwrite_parameters(self):
