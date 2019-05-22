@@ -209,6 +209,10 @@ class VectorSprite(pygame.sprite.Sprite):
         self.width = self.rect.width
         self.height = self.rect.height
     
+    def make_images(self):
+        """fills the dict self.images for the zoom keys from -3 to 3, where 3 is the biggest images and 1 the default zoom level"""
+        
+    
     def rotate_to(self, final_degree):
         if final_degree < self.angle:
             self.rotate(- self.turnspeed)
@@ -261,6 +265,13 @@ class VectorSprite(pygame.sprite.Sprite):
         self.age += seconds
         self.wallbounce()
         self.rect.center = ( round(self.pos.x, 0), -round(self.pos.y, 0) )
+        
+    def worldrect(self, offset_x, offset_y, zoom):
+        x = self.pos.x + offset_x
+        y = self.pos.y - offset_y
+        self.rect.center = ( round(x,0), -round(y,0))
+
+
 
     def wallbounce(self):
         # ---- bounce / kill on screen edge ----
@@ -306,14 +317,11 @@ class VectorSprite(pygame.sprite.Sprite):
 class Turret(VectorSprite):
     
     def _overwrite_parameters(self):
-        self.worldpos = pygame.math.Vector2(self.pos.x, self.pos.y)
+        #self.worldpos = pygame.math.Vector2(self.pos.x, self.pos.y)
         self.images = [] # list of images, biggest first, than always zoomed out
         self.original_width = 64
         self.original_height = 64
 
-    def update(self, seconds):
-        VectorSprite.update(self,seconds)
-        self.worldpos += self.move * seconds
         
     def create_image(self):
         """create biggest possible image"""
@@ -324,14 +332,8 @@ class Turret(VectorSprite):
         self.image0 = self.image.copy()
         self.rect = self.image.get_rect()
         img = self.image.copy()
-        # --- list of images ----
-        side = min(self.original_width, self.original_height)
-        while side > 1:
-            self.images.append(img)
-            side = int(side * 0.5)
-            img = pygame.transform.scale(img, (side, side))
-        
-
+        self.make_images()
+      
 
 
 class Javelin(VectorSprite):
@@ -380,7 +382,28 @@ class Cannonball(VectorSprite):
         oldcenter = self.rect.center
         self.create_image()
         self.rect.center = oldcenter
-        print(self.pos3, self.move3)
+        #print(self.pos3, self.move3)
+
+class TileCursor(VectorSprite):
+    
+    def _overwrite_parameters(self):
+        pass
+        
+    def create_image(self):
+        self.image = pygame.surface.Surface((Viewer.tilesize, Viewer.tilesize))
+        color = random.randint(128,255)
+        pygame.draw.rect(self.image, (color,color,color), (0,0,Viewer.tilesize, Viewer.tilesize), 2)
+        self.image.set_colorkey((0,0,0))
+        self.image0 = self.image.copy()
+        self.rect = self.image.get_rect()
+        
+    def update(self, seconds):
+        VectorSprite.update(self,seconds)
+        oldcenter = self.rect.center
+        self.create_image()
+        self.rect.center = oldcenter
+        
+        
 
 class Ballista(VectorSprite):
     
@@ -553,7 +576,9 @@ class Viewer(object):
     height = 0
     world_width = 0
     world_height = 0
+    tilesize = 32
     images = {}
+    imageszoom = {}
     sounds = {}
     menu = {#main
             "main":            ["resume", "map", "settings", "credits", "quit" ],
@@ -608,7 +633,8 @@ class Viewer(object):
         self.playtime = 0.0
         self.rawmap = []
         self.waterheight = 0
-        self.tilesize = 32
+        #Viewer.tilesize = 32
+        self.grid = False
         Viewer.menu["set tile size"][-1] = "(The current tile size is: {}x{} pixel)".format(self.tilesize, self.tilesize)
         self.world_offset_x = 0
         self.world_offset_y = 0
@@ -650,6 +676,7 @@ class Viewer(object):
         for j in self.joysticks:
             j.init()
         self.prepare_sprites()
+        
         self.loadbackground()
         self.load_sounds()
         ##self.world = World()
@@ -713,10 +740,19 @@ class Viewer(object):
             #        Viewer.images[name] = pygame.transform.scale(
             #                        Viewer.images[name], (60, 60))
             
+            
+            
+    def zoom_sprites(self):
+        for name, image in Viewer.images.items():
+            Viewer.imageszoom[name] = {}
+            # TODO hier weitermachen
+            
+        
      
     def prepare_sprites(self):
         """painting on the surface and create sprites"""
         #self.load_sprites()
+        #self.zoom_sprites()
         self.allgroup =  pygame.sprite.LayeredUpdates() # for drawing
         self.flytextgroup = pygame.sprite.Group()
         #self.mousegroup = pygame.sprite.Group()
@@ -728,6 +764,10 @@ class Viewer(object):
         Turret.groups = self.allgroup, self.worldgroup, self.radargroup
         
         #Catapult.groups = self.allgroup,
+        
+        # --- tile cursor (number 0) ---
+        TileCursor()
+        
         #self.player1 =  Player(imagename="player1", warp_on_edge=True, pos=pygame.math.Vector2(Viewer.width/2-100,-Viewer.height/2))
         #self.player2 =  Player(imagename="player2", angle=180,warp_on_edge=True, pos=pygame.math.Vector2(Viewer.width/2+100,-Viewer.height/2))
         #self.b1 = Ballista()
@@ -790,11 +830,11 @@ class Viewer(object):
                         elif text == "credits":
                             Flytext(text="by Bigm0 and BakTheBig", fontsize = 100, pos=pygame.math.Vector2(400, -100), move=pygame.math.Vector2(0, 10))  
                         elif text == "increase tile size":
-                            self.tilesize += 1
+                            Viewer.tilesize += 1
                             Viewer.menu["set tile size"][-1] = "(The current tile size is: {}x{} pixel)".format(self.tilesize, self.tilesize)
                         elif text == "decrease tile size":
                             if self.tilesize > 1:
-                                self.tilesize -= 1
+                                Viewer.tilesize -= 1
                                 Viewer.menu["set tile size"][-1] = "(The current tile size is: {}x{} pixel)".format(self.tilesize, self.tilesize)
                            
                     
@@ -877,9 +917,9 @@ class Viewer(object):
                                     for x, number in enumerate(line):
                                         if number == "\n":
                                             continue
-                                        print("number:", number)
+                                        #print("number:", number)
                                         pygame.draw.rect(self.radarmap, (int(number), int(number), int(number)), (x,y,1,1))
-                                self.radarmap.set_colorkey((0,0,0))
+                                self.radarmap.set_colorkey((128,0,128))
                                         
                                 # add exiting chars in rawmap to water high
                                 #mynumbers = []
@@ -943,91 +983,96 @@ class Viewer(object):
             print("generating map.....{} x {}".format(len(self.rawmap[1]), len(self.rawmap )))
             self.screen.fill((255,128,128))
             # BUG! size limit 16384 for surface width / height ? 
-            self.world = pygame.surface.Surface((len(self.rawmap[0])*self.tilesize, len(self.rawmap)*self.tilesize))
-            
+            #self.world = pygame.surface.Surface((len(self.rawmap[0])*self.tilesize, len(self.rawmap)*self.tilesize))
+            self.world = pygame.surface.Surface((self.width, self.height))
+            dy = self.world_offset_y / self.tilesize
+            dx = self.world_offset_x / self.tilesize
             for y, line in enumerate(self.rawmap):
                 for x, number in enumerate(line):
+                    if x < -dx or y < -dy:
+                        continue
+                    if x > self.width / self.tilesize - dx or y > self.height / self.tilesize - dy:
+                        continue
                     if number == "\n":
                         continue
                     number = int(number)
-                    #print("das ist die line", line)
-                    #print("tilesize", self.tilesize)
-                    #Tile(pos=pygame.math.Vector2(x*self.tilesize, -y*self.tilesize), tilesize = self.tilesize, colorchar = char)
-                    # number is a height value from 0-255
-                    print("processing value of {} at pos x {} y {}".format(number, x, y))
-                    # water = blue
-                    #if number <= self.waterheight:
-                    #    color = (0,0,255) # blue
-                    #elif number < 64:
-                    #    color = (number, number, number)
-                    #elif number < 128:
-                    #    color = (number, number+60, number+50) # brown
-                    #elif number < 215:
-                    #    color = (44 + int(number/3), 255, 44+ int(number/3)) # green
-                    #else:
-                    #    color = (255, number, 255)
-                                        # water = blue
                     if number <= self.waterheight:
                         color = (0,0,255) # blue
-                    #elif number < 10:
-                    #    color = (255, 255, 255)
-                    elif number < 10:
+                    elif number < 10:    # 0-10
                         color = (178, 240, 245-number)
-                    elif number < 30:
-                        color = (179 + number - 10,241 ,204 )
-                    elif number < 40:
-                        color = (195,247 ,173) 
-                    elif number < 50:
-                        color = (231, 253, 178) 
-                    elif number < 60:
-                        color = (195, 227, 126) 
-                    elif number < 70:
-                        color = (94,189 ,63 ) 
-                    elif number < 80:
-                        color = (21,147 ,47 )
-                    elif number < 90:
-                        color = (49,136 ,58 )
-                    elif number < 100:
-                        color = (122,155 ,50 )
-                    elif number < 110:
-                        color = (192,173 ,34 )
-                    elif number < 120:
-                        color = (230,173 ,4 )
-                    elif number < 130:
-                        color = (245,161 ,1 )
-                    elif number < 140:
-                        color = (255,194 ,5 )
-                    elif number < 150:
-                        color = (255,147 ,74 )
-                    elif number < 160:
-                        color = (225,122 ,71 )
-                    elif number < 170:
-                        color = (202,89 ,75 )
-                    elif number < 180:
-                        color = (193,60 ,1 )
-                    elif number < 190:
-                        color = (117,66 ,21 )
-                    elif number < 200:
-                        color = (137,99 ,76 )
-                    elif number < 210:
-                        color = (164,142 ,121)
-                    elif number < 220:
-                        color = (176,176 ,176 )
-                    elif number < 230:
-                        color = (226,226 ,226 )
-                    else :
-                        color = (253,253 ,253 ) 
-                     
-                     
-                        
-                    pygame.draw.rect(self.world, color, (x * self.tilesize, y * self.tilesize, self.tilesize, self.tilesize))
-            
+                    elif number < 30:    # 10-30
+                        color = (179 + (number-10),241 ,204 )
+                    elif number < 40:    # 30-40
+                        color = (195,247 ,173+ (number-30)) 
+                    elif number < 50:    # 40-50
+                        color = (231, 253-(number-40), 178) 
+                    elif number < 60:    # 50-60
+                        color = (195, 227-(number-50), 126) 
+                    elif number < 70:   # 60-70
+                        color = (94,189 - (number-60) ,63 ) 
+                    elif number < 80:   # 70-80
+                        color = (21,147 - (number-70) ,47 )
+                    elif number < 90:   # 80-90
+                        color = (49 + (number-80),136 ,58 )
+                    elif number < 100:  # 90-100
+                        color = (122,155 + (number-90) ,50 )
+                    elif number < 110:  # 100-110
+                        color = (192,173 ,34 - (number-100) )
+                    elif number < 120:  # 110-120
+                        color = (230,173 - (number-110) ,4 )
+                    elif number < 130:  # 120-130
+                        color = (245,161 + (number-120) ,1 )
+                    elif number < 140:  # 130-140
+                        color = (255,194 - (number-130) ,5 )
+                    elif number < 150:  # 140-150
+                        color = (255,147 - (number-140),74 )
+                    elif number < 160:  # 150-160
+                        color = (225 - (number-150),122 ,71 )
+                    elif number < 170:  # 160-170
+                        color = (202 - (number-160),89 ,75 )
+                    elif number < 180:  # 170-180
+                        color = (193,60 + (number-170) ,1 )
+                    elif number < 190:  # 180-190
+                        color = (117 + (number-180),66 ,21 )
+                    elif number < 200:  # 190-200
+                        color = (137 + (number-190),99 ,76 )
+                    elif number < 210:  #200-210
+                        color = (164 + (number-200),142 ,121)
+                    elif number < 220:  #210-220
+                        color = (176 + number-210,176+ number-210 ,176+ number-210 )
+                    elif number < 230: #220-230
+                        color = (226 + number-220,226+number-220 ,226+number-220 )
+                    elif number < 240: #230-240
+                        color = (236+number-230,236+number-230 ,236+number-230 ) 
+                    else:              #240-255
+                        color = (236+number-240,236+number-240 ,236+number-240 ) 
+                    #print("x,dx, y,dy", x, dx, y, dy)
+                    #print("rect start x, rect start y", (x+dx)*self.tilesize, (y+dy) * self.tilesize) 
+                    pygame.draw.rect(self.world, color, ((x+dx) * self.tilesize, (y+dy) * self.tilesize, self.tilesize, self.tilesize))
+                    if self.grid:
+                        pygame.draw.rect(self.world, (255,255,255), ((x+dx) * self.tilesize, (y+dy) * self.tilesize, self.tilesize, self.tilesize), 1)
+                    
     
     
     def display_help(self):
         Flytext(text="scroll map with cursor keys", pos = pygame.math.Vector2(400, -100))
         Flytext(text="zoom map with mouse wheel or with + and - key", pos = pygame.math.Vector2(400,-150))
         Flytext(text="set water level with PgUp key and PgDown key",  pos = pygame.math.Vector2(400,-200))
+        Flytext(text="toogle grid with key g", pos = pygame.math.Vector2(400,-250))
+    
+    def worldzoom(self, delta):
+        """incrase (delta=1) or decrease (delta=-1) worldzoom"""
+        if delta not in [1,-1]:
+            raise ValueError("delta of worldzoom must be 1 or -1")
+        self.world_zoom += delta
+        if delta == 1:
+            factor = 2
+        else:
+            factor = 0.5
+        Viewer.tilesize *= factor
+        for o in self.worldgroup:
+            o.pos *= factor
+        self.make_worldmap() 
     
     def run(self):
         """The mainloop"""
@@ -1040,7 +1085,7 @@ class Viewer(object):
         if self.rawmap != []:
             self.make_worldmap()
                     
-                    
+        x, y, h = "?","?","?"
         while running:
           
             milliseconds = self.clock.tick(self.fps) #
@@ -1048,6 +1093,7 @@ class Viewer(object):
             self.playtime += seconds
             text = "press h for help. FPS: {:8.3} ".format(self.clock.get_fps())
             text += "Worldzoom: {}    world_offset_x: {}     world_offset_y: {}".format(self.world_zoom, self.world_offset_x, self.world_offset_y)
+            text += "tile value (x:{} y:{}): {}".format(x,y,h) 
             pygame.display.set_caption(text)
             
             # -------- events ------
@@ -1057,12 +1103,15 @@ class Viewer(object):
                 # ----- mouse wheel -----
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                      if event.button == 4:
-                         self.tilesize += 1
-                         self.make_worldmap()
+                         #Viewer.tilesize += 1
+                         #self.make_worldmap()
+                         self.worldzoom(1)
                      elif event.button == 5:
-                         self.tilesize -= 1
-                         self.make_worldmap()
-                
+                         #Viewer.tilesize -= 1
+                         #self.make_worldmap()
+                         self.worldzoom(-1)
+                         
+                         
                 
                 # ------- pressed and released key ------
                 
@@ -1086,54 +1135,56 @@ class Viewer(object):
                         m.rotate_ip(self.c1.angle)
                         Cannonball(pos=p, move=m, bossnumber= self.c1.number)
                     if event.key == pygame.K_PLUS:
-                        self.world_zoom += 1
-                        self.tilesize *= 2
-                        self.make_worldmap()
-                        for o in self.worldgroup:
-                            o.pos *= 2
+                        self.worldzoom(1)
                     if event.key == pygame.K_MINUS:
-                        self.world_zoom -= 1
-                        self.tilesize /= 2
-                        for o in self.worldgroup:
-                            o.pos *= 0.5
-                        self.make_worldmap()
+                        self.worldzoom(-1)
                     if event.key == pygame.K_h:
                         self.display_help()
+                    if event.key == pygame.K_g:
+                        self.grid = not self.grid
+                        Flytext(x=400,y=400, text="Grid is now: {}".format(self.grid))
+                        self.make_worldmap()
+                    # --------------- map scrolling ------------
+                    if event.key == pygame.K_UP:
+                        self.world_offset_y += self.tilesize
+                        self.make_worldmap()
+                        #for o in self.worldgroup:
+                            #o.worldpos.y += self.tilesize
+                            #o.pos.y -= self.tilesize
+                    if event.key == pygame.K_DOWN: 
+                        self.world_offset_y += -self.tilesize
+                        self.make_worldmap()
+                        #for o in self.worldgroup:
+                            #o.worldpos.y -= self.tilesize
+                            #o.pos.y += self.tilesize
+                    if event.key == pygame.K_LEFT:
+                        self.world_offset_x += self.tilesize
+                        self.make_worldmap()
+                        #for o in self.worldgroup:
+                            #o.worldpos.x += self.tilesize
+                            #o.pos.x += self.tilesize
+                            #print(o.pos)
+                    if event.key == pygame.K_RIGHT: 
+                        self.world_offset_x += -self.tilesize
+                        self.make_worldmap()
+                        #for o in self.worldgroup:
+                            #o.worldpos.x -= self.tilesize
+                            #o.pos.x -= self.tilesize
+                    # ----------- water raising / lowering ------
+                    if event.key == pygame.K_PAGEUP:
+                        self.waterheight += 5
+                        self.waterheight = min(255, self.waterheight)
+                        self.make_worldmap()
+                        
+                    if event.key == pygame.K_PAGEDOWN:
+                        self.waterheight -= 5
+                        self.waterheight = max(0, self.waterheight)
+                        self.make_worldmap()
+                    
             # ------------ pressed keys ------
             pressed_keys = pygame.key.get_pressed()
             
-            # --------------- map scrolling ------------
-            if pressed_keys[pygame.K_UP]:
-                self.world_offset_y += 1
-                for o in self.worldgroup:
-                    o.worldpos.y += 1
-                    o.pos.y -= 1
-            if pressed_keys[pygame.K_DOWN]: 
-                self.world_offset_y += -1
-                for o in self.worldgroup:
-                    o.worldpos.y -= 1
-                    o.pos.y += 1
-            if pressed_keys[pygame.K_LEFT]:
-                self.world_offset_x += 1
-                for o in self.worldgroup:
-                    o.worldpos.x += 1
-                    o.pos.x += 1
-                    print(o.pos)
-            if pressed_keys[pygame.K_RIGHT]: 
-                self.world_offset_x += -1
-                for o in self.worldgroup:
-                    o.worldpos.x -= 1
-                    o.pos.x -= 1
-            if pressed_keys[pygame.K_PAGEUP]:
-                self.waterheight += 5
-                self.waterheight = min(255, self.waterheight)
-                self.make_worldmap()
-                
-            if pressed_keys[pygame.K_PAGEDOWN]:
-                self.waterheight -= 5
-                self.waterheight = max(0, self.waterheight)
-                self.make_worldmap()
-            
+          
             # ------- movement keys for player1 -------
             
             #if pressed_keys[pygame.K_l]:
@@ -1176,15 +1227,28 @@ class Viewer(object):
               
             # =========== delete everything on screen ==============
             self.screen.fill((0,0,0))
-            self.screen.blit(self.world, (self.world_offset_x,self.world_offset_y ))
+            self.screen.blit(self.world, (0,0 ))
+            
+            # --- tile coursor -----
+            x,y = pygame.mouse.get_pos()
+            x = int(x / self.tilesize)
+            y = int(y / self.tilesize)
+            try:
+                h = self.rawmap[y][x]
+            except:
+                x, y = 0, 0
+            VectorSprite.numbers[0].pos.x = x * self.tilesize + self.tilesize // 2
+            VectorSprite.numbers[0].pos.y = -y * self.tilesize - self.tilesize // 2
+            
+            
             
             
             
             #self.screen.blit(self.radarmap, (0,0))
             # ---- showing currently visible world map borders in radarmap -----
             radar = self.radarmap.copy()
-            print("ox, oy, ox+width/tileset, oy+height/tileset", self.world_offset_x, self.world_offset_y , self.world_offset_x + int(Viewer.width / self.tilesize), self.world_offset_y + int(Viewer.height / self.tilesize))
-            pygame.draw.rect(radar, (80,255,80),  (-self.world_offset_x, -self.world_offset_y , int(Viewer.width / self.tilesize), int(Viewer.height / self.tilesize)),1)
+            #print("ox, oy, ox+width/tileset, oy+height/tileset", self.world_offset_x, self.world_offset_y , self.world_offset_x + int(Viewer.width / self.tilesize), self.world_offset_y + int(Viewer.height / self.tilesize))
+            pygame.draw.rect(radar, (80,255,80),  (-self.world_offset_x//self.tilesize, -self.world_offset_y//self.tilesize , int(Viewer.width / self.tilesize), int(Viewer.height / self.tilesize)),1)
             self.screen.blit(radar, (Viewer.width-radar.get_width(),0))
             
             ##self.paint_world()
@@ -1206,6 +1270,8 @@ class Viewer(object):
                    
             # ================ UPDATE all sprites =====================
             self.allgroup.update(seconds)
+            for s in self.worldgroup:
+                s.worldrect(self.world_offset_x, self.world_offset_y, self.worldzoom)
 
             # ----------- clear, draw , update, flip -----------------
             self.allgroup.draw(self.screen)
