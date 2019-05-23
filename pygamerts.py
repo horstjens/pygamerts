@@ -581,25 +581,25 @@ class Viewer(object):
     imageszoom = {}
     sounds = {}
     menu = {#main
-            "main":            ["resume", "map", "settings", "credits", "quit" ],
+            "main":               ["resume", "map", "settings", "credits", "quit" ],
             
             #map
-            "map":             ["back", "load a map", "set water height", "set tile size", "convert png to txt"],
-            "load a map":      ["back"],
-            "convert png to txt": ["back"], 
-            "set water height":["back", "no water"],
-            "set tile size":   ["back", "increase tile size", "decrease tile size", "tile size is now: "],
+            "map":                ["back", "load a map", "set water height", "set tile size", "convert png to map"],
+            "load a map":         ["back"],
+            "convert png to map": ["back"], 
+            "set water height":   ["back", "no water"],
+            "set tile size":      ["back", "increase tile size", "decrease tile size", "tile size is now: "],
             
-            "settings":        ["back", "video", "difficulty", "reset all values"],
+            "settings":           ["back", "video", "difficulty", "reset all values"],
             
             #settings
-            "video":           ["back", "resolution", "fullscreen"],
+            "video":              ["back", "resolution", "fullscreen"],
             
 
             
             #video
-            "resolution":      ["back"],
-            "fullscreen":      ["back", "true", "false"]
+            "resolution":         ["back"],
+            "fullscreen":         ["back", "true", "false"]
             }
     
     
@@ -853,15 +853,15 @@ class Viewer(object):
                         if Viewer.name == "map":
                             # --- get maps (map*.txt files) ---
                             # --- get png files (*.png)
-                            Flytext(text="scanning all maps...", pos=pygame.math.Vector2(400, -100), move=pygame.math.Vector2(0, 10))
-                            for root, dirs, files in os.walk("."):
+                            Flytext(text="scanning all .png and .map files from folder maps", pos=pygame.math.Vector2(400, -100), move=pygame.math.Vector2(0, 10))
+                            for root, dirs, files in os.walk("maps"):
                                 for f in files:
-                                    if f[-4:] == ".txt" and f[:3] == "map":
+                                    if f[-4:] == ".map":
                                         if f not in Viewer.menu["load a map"]:
                                              Viewer.menu["load a map"].append(f)
                                     elif f[-4:] == ".png":
-                                        if f not in Viewer.menu["convert png to txt"]:
-                                             Viewer.menu["convert png to txt"].append(f)
+                                        if f not in Viewer.menu["convert png to map"]:
+                                             Viewer.menu["convert png to map"].append(f)
                                 break # only this directory
 
                                     
@@ -877,10 +877,11 @@ class Viewer(object):
                         if Viewer.name == "set water height":
                             if text != "back":
                                 self.waterheight = text
-                        if Viewer.name == "convert png to txt":
+                        if Viewer.name == "convert png to map":
                             if text != "back" and text[-4:] == ".png":
-                                name = "map" + text[:-4]+".txt"
-                                pic = pygame.image.load(text)
+                                name = text[:-4]+".map"
+                                print("i try to open", text)
+                                pic = pygame.image.load(os.path.join("maps", text))
                                 lines = []
                                 for y in range(pic.get_height()):
                                     line = []
@@ -891,18 +892,18 @@ class Viewer(object):
                                         # color is a tuple with r, g, b, and alpha?, all integers 0-255
                                     lines.append(line)
                                 
-                                with open(name, "w") as f:
+                                with open(os.path.join("maps", name), "w") as f:
                                     for line in lines:
                                         textline = ""
                                         for color in line:
                                             textline += str(color[0]) + ","
                                         f.write(textline+"\n")
-                                Flytext(text="map converted into txt file", pos=pygame.math.Vector2(400, -400), move=pygame.math.Vector2(0, 10))
+                                Flytext(text="png converted into map file", pos=pygame.math.Vector2(400, -400), move=pygame.math.Vector2(0, 10))
                                             
                                     
                         if Viewer.name == "load a map":
-                            if text[-4:] == ".txt" and text[:3] == "map":
-                                with open(text, "r") as f:
+                            if text[-4:] == ".map":
+                                with open(os.path.join("maps", text), "r") as f:
                                     lines = f.readlines()
                                 for line in lines:
                                     row = []
