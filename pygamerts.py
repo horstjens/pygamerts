@@ -318,21 +318,29 @@ class Turret(VectorSprite):
     
     def _overwrite_parameters(self):
         #self.worldpos = pygame.math.Vector2(self.pos.x, self.pos.y)
-        self.images = [] # list of images, biggest first, than always zoomed out
+        #self.images = [] # list of images, biggest first, than always zoomed out
         self.original_width = 64
         self.original_height = 64
+        self.name = "catapult"
+        self.z = int(self.z)
 
         
     def create_image(self):
         """create biggest possible image"""
-        self.image = pygame.surface.Surface((self.original_width, self.original_height))
-        pygame.draw.circle(self.image, (128,0,128), (self.original_width //2, self.original_height // 2), self.original_width//2)
-        self.image.set_colorkey((0,0,0))
-        self.image.convert_alpha()
+        #self.image = pygame.surface.Surface((self.original_width, self.original_height))
+        #pygame.draw.circle(self.image, (128,0,128), (self.original_width //2, self.original_height // 2), self.original_width//2)
+        #self.image.set_colorkey((0,0,0))
+        #self.image.convert_alpha()
+        self.image = Viewer.images[self.name]
         self.image0 = self.image.copy()
         self.rect = self.image.get_rect()
         img = self.image.copy()
         self.make_images()
+        
+    def update(self, seconds):
+        VectorSprite.update(self, seconds)
+        if random.random() < 0.01:
+            Javelin(pos=pygame.math.Vector2(self.pos.x, self.pos.y), move=pygame.math.Vector2(100,-100), max_distance=1000, angle=-45, start_z=self.z+20, bossnumber=self.number)
       
 
 
@@ -340,6 +348,8 @@ class Javelin(VectorSprite):
     
     def _overwrite_parameters(self):
         self.speed = 150
+        self.start_z = int(self.start_z)
+        
  
         
     def create_image(self):
@@ -349,6 +359,8 @@ class Javelin(VectorSprite):
         self.image.convert_alpha()
         self.image0 = self.image.copy()
         self.rect = self.image.get_rect()
+        
+        
 
 class Cannonball(VectorSprite):
     """3d sprite"""
@@ -675,8 +687,8 @@ class Viewer(object):
         self.joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
         for j in self.joysticks:
             j.init()
-        self.prepare_sprites()
         
+        self.prepare_sprites()
         self.loadbackground()
         self.load_sounds()
         ##self.world = World()
@@ -728,53 +740,66 @@ class Viewer(object):
     def load_sprites(self):
             """ all sprites that can rotate MUST look to the right. Edit Image files manually if necessary!"""
             print("loading sprites from 'data' folder....")
-            Viewer.images["catapult1"]= pygame.image.load(
-                 os.path.join("data", "catapultC1.png")).convert_alpha()
+            #Viewer.images["catapult1"]= pygame.image.load(
+            #     os.path.join("data", "catapultC1.png")).convert_alpha()
             
             ##self.create_selected("catapult1")
             
-            Viewer.images["ballista1"] = pygame.image.load(os.path.join("data", "ballistaB1.png"))
+            Viewer.images["cannon"] = pygame.image.load(os.path.join("data", "cannon1.png")).convert_alpha()
+            Viewer.images["catapult"] = pygame.image.load(os.path.join("data", "catapult1.png")).convert_alpha()
             # --- scalieren ---
-            #for name in Viewer.images:
-            #    if name == "bossrocket":
-            #        Viewer.images[name] = pygame.transform.scale(
-            #                        Viewer.images[name], (60, 60))
-            
+                       
             
             
     def zoom_sprites(self):
         for name, image in Viewer.images.items():
             Viewer.imageszoom[name] = {}
             # TODO hier weitermachen
+            i = image.copy()
+            for z in range(3, -4, -1):
+                Viewer.imageszoom[name][z] = i.copy()
+                i = pygame.transform.rotozoom(i, 0.0, 0.5)
+                
+                
             
         
      
     def prepare_sprites(self):
         """painting on the surface and create sprites"""
-        #self.load_sprites()
-        #self.zoom_sprites()
+        self.load_sprites()
+        self.zoom_sprites()
         self.allgroup =  pygame.sprite.LayeredUpdates() # for drawing
         self.flytextgroup = pygame.sprite.Group()
         #self.mousegroup = pygame.sprite.Group()
         self.worldgroup = pygame.sprite.Group()
+        self.bulletgroup = pygame.sprite.Group()
         self.radargroup = pygame.sprite.Group()
         VectorSprite.groups = self.allgroup
         #Tile.groups = self.allgroup
+        Javelin.groups = self.allgroup, self.worldgroup, self.bulletgroup
         Flytext.groups = self.allgroup, self.flytextgroup
         Turret.groups = self.allgroup, self.worldgroup, self.radargroup
         
         #Catapult.groups = self.allgroup,
         
         # --- tile cursor (number 0) ---
-        TileCursor()
+        TileCursor() 
         
         #self.player1 =  Player(imagename="player1", warp_on_edge=True, pos=pygame.math.Vector2(Viewer.width/2-100,-Viewer.height/2))
         #self.player2 =  Player(imagename="player2", angle=180,warp_on_edge=True, pos=pygame.math.Vector2(Viewer.width/2+100,-Viewer.height/2))
         #self.b1 = Ballista()
         #self.c1 = Catapult()
+        
+        
+    def create_sprites(self):
+         
         for (x,y) in ((200,300), (800,300), (800, 800), (200,800), (500,550)):
-            Turret(pos=pygame.math.Vector2(x,-y))
-   
+            tz = self.get_z(x,y)
+            Turret(pos=pygame.math.Vector2(x,-y), z=tz)
+            print("turret z", tz)
+        print("sprites created")
+        for s in self.allgroup:
+            print(s, s.number) 
     
     
        
@@ -1061,32 +1086,55 @@ class Viewer(object):
         Flytext(text="set water level with PgUp key and PgDown key",  pos = pygame.math.Vector2(400,-200))
         Flytext(text="toogle grid with key g", pos = pygame.math.Vector2(400,-250))
     
+    
+    def get_z(self, xpos, ypos):
+         # --- tile coursor -----
+         x = int(xpos / self.tilesize)
+         y = int(ypos / self.tilesize)
+         try:
+             z = self.rawmap[-y][x]
+         except:
+             return None
+         return z
+    
     def worldzoom(self, delta):
         """incrase (delta=1) or decrease (delta=-1) worldzoom"""
-        if delta not in [1,-1]:
-            raise ValueError("delta of worldzoom must be 1 or -1")
+        if delta not in [1,0,-1]:
+            raise ValueError("delta of worldzoom must be 1 or -1 or 0")
         self.world_zoom += delta
         if delta == 1:
             factor = 2
-        else:
+        elif delta == -1:
             factor = 0.5
+        elif delta == 0:
+            factor = 1
         Viewer.tilesize *= factor
         for o in self.worldgroup:
             o.pos *= factor
         self.make_worldmap() 
+        # --- zoom all sprites ----
+        for s in self.worldgroup:
+            s.image = Viewer.imageszoom[s.name][self.world_zoom]
+            s.image0 = s.image.copy()
+        
     
     def run(self):
         """The mainloop"""
         
         running = True
         self.menu_run()
+        
         pygame.mouse.set_visible(True)
         oldleft, oldmiddle, oldright  = False, False, False
         # --------- blitting rawmap to world ------------
         if self.rawmap != []:
             self.make_worldmap()
-                    
+        
         x, y, h = "?","?","?"
+        self.worldzoom(0)
+        
+        self.create_sprites()
+        
         while running:
           
             milliseconds = self.clock.tick(self.fps) #
@@ -1273,6 +1321,16 @@ class Viewer(object):
             self.allgroup.update(seconds)
             for s in self.worldgroup:
                 s.worldrect(self.world_offset_x, self.world_offset_y, self.worldzoom)
+                
+            
+            # --- is a javelin (from bulletgroup) flown into a mountain ? -----
+            for bu in self.bulletgroup:
+                z = int(self.get_z(bu.pos.x, bu.pos.y))
+                if z > bu.start_z:
+                    # bullet is inside a mountain
+                    bu.kill() 
+                    # Explosion?
+                    
 
             # ----------- clear, draw , update, flip -----------------
             self.allgroup.draw(self.screen)
