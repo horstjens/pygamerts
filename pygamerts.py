@@ -523,6 +523,51 @@ class Catapult(VectorSprite):
 
 
 
+class Swordgoblin(VectorSprite):
+    
+    def new_move(self):
+        self.angle = random.randint(0,360)
+        self.speed = random.randint(40,140)
+        self.move = pygame.math.Vector2(self.speed, 0)
+        self.move.rotate_ip(self.angle)
+        self.set_angle(self.angle)
+    
+    def _overwrite_parameters(self):
+        #self.speed = 75
+        #self.new_move()
+        #self.bounce_on_edge = True
+        max_age = 5
+        self.name = "swordgoblin"
+    def create_image(self):
+        self.image=Viewer.images["swordgoblin"]
+        self.image0 = self.image.copy()
+        self.rect = self.image.get_rect()
+        
+    def update(self,seconds):
+        VectorSprite.update(self,seconds)
+        if random.random() < 0.002:
+            self.new_move()
+            
+class Tent(VectorSprite):
+    
+    def _overwrite_parameters(self):
+        self.spawntime = 2.5
+        self.spawn = 0
+        self.name = "Tent"
+        
+    def create_image(self):
+        self.image = Viewer.images["Tent"]
+        self.image0 = self.image.copy()
+        self.rect = self.image.get_rect()
+        
+    def update(self,seconds):
+        VectorSprite.update(self,seconds)
+        self.spawn += seconds
+        if self.spawn > self.spawntime:
+            Swordgoblin(pos=pygame.math.Vector2(self.pos.x, self.pos.y))
+            self.spawn = 0
+
+
 class Flytext(VectorSprite):
     
     def _overwrite_parameters(self):
@@ -750,6 +795,8 @@ class Viewer(object):
             Viewer.images["cannon"] = pygame.image.load(os.path.join("data", "cannon1.png")).convert_alpha()
             Viewer.images["catapult"] = pygame.image.load(os.path.join("data", "catapult1.png")).convert_alpha()
             Viewer.images["rock"] = pygame.image.load(os.path.join("data", "rock.png")).convert_alpha()
+            Viewer.images["Tent"]= pygame.image.load(os.path.join("data", " tent1.png")).convert_alpha()
+            Viewer.images["swordgoblin"]= pygame.image.load(os.path.join("data" , "swordgoblin.png")).convert_alpha()
             # --- scalieren ---
                        
             
@@ -777,12 +824,15 @@ class Viewer(object):
         self.worldgroup = pygame.sprite.Group()
         self.bulletgroup = pygame.sprite.Group()
         self.radargroup = pygame.sprite.Group()
+        self.tentgroup = pygame.sprite.Group()
+        self.swordgoblingroup = pygame.sprite.Group()
         VectorSprite.groups = self.allgroup
         #Tile.groups = self.allgroup
         Javelin.groups = self.allgroup, self.worldgroup, self.bulletgroup
         Flytext.groups = self.allgroup, self.flytextgroup
         Turret.groups = self.allgroup, self.worldgroup, self.radargroup
-        
+        Tent.groups = self.allgroup , self.worldgroup
+        Swordgoblin.groups = self.allgroup, self.worldgroup, self.swordgoblingroup
         #Catapult.groups = self.allgroup,
         
         # --- tile cursor (number 0) ---
@@ -796,6 +846,8 @@ class Viewer(object):
         
     def create_sprites(self):
          
+        for (x,y) in ((1800,2800), (300,320)):
+            Tent(pos=pygame.math.Vector2(x,-y))
         for (x,y) in ((200,300), (800,300), (800, 800), (200,800), (500,550)):
             tz = self.get_z(x,y)
             Turret(pos=pygame.math.Vector2(x,-y), z=tz)
