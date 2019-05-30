@@ -353,17 +353,15 @@ class Javelin(VectorSprite):
     def _overwrite_parameters(self):
         self.speed = 150
         self.start_z = int(self.start_z)
-        
+        self.name = "rock"
  
         
     def create_image(self):
-        self.image = pygame.surface.Surface((80,20))
-        self.image.fill((128,0,0))
-        self.image.set_colorkey((0,0,0))
-        self.image.convert_alpha()
+        self.image = Viewer.images[self.name]
         self.image0 = self.image.copy()
         self.rect = self.image.get_rect()
-        
+        img = self.image.copy()
+        self.make_images()
         
 
 class Cannonball(VectorSprite):
@@ -751,6 +749,7 @@ class Viewer(object):
             
             Viewer.images["cannon"] = pygame.image.load(os.path.join("data", "cannon1.png")).convert_alpha()
             Viewer.images["catapult"] = pygame.image.load(os.path.join("data", "catapult1.png")).convert_alpha()
+            Viewer.images["rock"] = pygame.image.load(os.path.join("data", "rock.png")).convert_alpha()
             # --- scalieren ---
                        
             
@@ -1332,6 +1331,7 @@ class Viewer(object):
                 z = int(self.get_z(bu.pos.x, bu.pos.y))
                 if z > bu.start_z:
                     # bullet is inside a mountain
+                    Explosion(posvector=bu.pos)
                     bu.kill() 
                     # Explosion?
                     
