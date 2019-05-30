@@ -344,11 +344,27 @@ class Turret(VectorSprite):
         if random.random() < 0.01:
             m = pygame.math.Vector2(100,0)
             m.rotate_ip(self.angle)
-            Javelin(pos=pygame.math.Vector2(self.pos.x, self.pos.y), move=m, max_distance=1000, angle=self.angle, start_z=self.z+20, bossnumber=self.number)
+            Rock(pos=pygame.math.Vector2(self.pos.x, self.pos.y), move=m, max_distance=1000, angle=self.angle, start_z=self.z+20, bossnumber=self.number)
       
 
 
 class Javelin(VectorSprite):
+    
+    def _overwrite_parameters(self):
+        self.speed = 150
+        self.start_z = int(self.start_z)
+        self.name = "javelin"
+ 
+        
+    def create_image(self):
+        self.image = Viewer.images[self.name]
+        self.image0 = self.image.copy()
+        self.rect = self.image.get_rect()
+        img = self.image.copy()
+        self.make_images()
+
+
+class Rock(VectorSprite):
     
     def _overwrite_parameters(self):
         self.speed = 150
@@ -362,7 +378,7 @@ class Javelin(VectorSprite):
         self.rect = self.image.get_rect()
         img = self.image.copy()
         self.make_images()
-        
+                
 
 class Cannonball(VectorSprite):
     """3d sprite"""
@@ -531,6 +547,7 @@ class Swordgoblin(VectorSprite):
         self.move = pygame.math.Vector2(self.speed, 0)
         self.move.rotate_ip(self.angle)
         self.set_angle(self.angle)
+        
     
     def _overwrite_parameters(self):
         #self.speed = 75
@@ -538,6 +555,8 @@ class Swordgoblin(VectorSprite):
         #self.bounce_on_edge = True
         max_age = 5
         self.name = "swordgoblin"
+        self.z = 200
+        #self.z = int(self.z)    
     def create_image(self):
         self.image=Viewer.images["swordgoblin"]
         self.image0 = self.image.copy()
@@ -547,11 +566,17 @@ class Swordgoblin(VectorSprite):
         VectorSprite.update(self,seconds)
         if random.random() < 0.002:
             self.new_move()
+        if random.random() < 0.01:
+            m = pygame.math.Vector2(100,0)
+            m.rotate_ip(self.angle)
+            Javelin(pos=pygame.math.Vector2(self.pos.x, self.pos.y), move=m, max_distance=1000, angle=self.angle, start_z=self.z+20, bossnumber=self.number)
+      
+
             
 class Tent(VectorSprite):
     
     def _overwrite_parameters(self):
-        self.spawntime = 2.5
+        self.spawntime = 5.0
         self.spawn = 0
         self.name = "Tent"
         
@@ -792,11 +817,11 @@ class Viewer(object):
             
             ##self.create_selected("catapult1")
             
-            Viewer.images["cannon"] = pygame.image.load(os.path.join("data", "cannon1.png")).convert_alpha()
             Viewer.images["catapult"] = pygame.image.load(os.path.join("data", "catapult1.png")).convert_alpha()
             Viewer.images["rock"] = pygame.image.load(os.path.join("data", "rock.png")).convert_alpha()
-            Viewer.images["Tent"]= pygame.image.load(os.path.join("data", " tent1.png")).convert_alpha()
+            Viewer.images["Tent"]= pygame.image.load(os.path.join("data", "tent1.png")).convert_alpha()
             Viewer.images["swordgoblin"]= pygame.image.load(os.path.join("data" , "swordgoblin.png")).convert_alpha()
+            Viewer.images["javelin"] = pygame.image.load(os.path.join("data", "javelin.png")).convert_alpha()
             # --- scalieren ---
                        
             
