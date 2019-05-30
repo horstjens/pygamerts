@@ -338,9 +338,13 @@ class Turret(VectorSprite):
         self.make_images()
         
     def update(self, seconds):
+        if random.random() < 0.01:
+            self.rotate(random.choice((-3,-2,-1,-1,0,1,1,2,3)))
         VectorSprite.update(self, seconds)
         if random.random() < 0.01:
-            Javelin(pos=pygame.math.Vector2(self.pos.x, self.pos.y), move=pygame.math.Vector2(100,-100), max_distance=1000, angle=-45, start_z=self.z+20, bossnumber=self.number)
+            m = pygame.math.Vector2(100,0)
+            m.rotate_ip(self.angle)
+            Javelin(pos=pygame.math.Vector2(self.pos.x, self.pos.y), move=m, max_distance=1000, angle=self.angle, start_z=self.z+20, bossnumber=self.number)
       
 
 
