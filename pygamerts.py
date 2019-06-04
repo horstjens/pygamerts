@@ -48,6 +48,58 @@ def write(background, text="bla", pos=None, color=(0,0,0),
         else:      # topleft corner is x,y
             background.blit(surface, (x,y))
 
+def get_height_color(number):
+    """ takes a number (height-value) from 0 to 255 and returns a color value. white for top (snow), green for lowlands etc. ..."""
+    if number < 10:    # 0-10
+        color = (178, 240, 245-number)
+    elif number < 30:    # 10-30
+        color = (179 + (number-10),241 ,204 )
+    elif number < 40:    # 30-40
+        color = (195,247 ,173+ (number-30)) 
+    elif number < 50:    # 40-50
+        color = (231, 253-(number-40), 178) 
+    elif number < 60:    # 50-60
+        color = (195, 227-(number-50), 126) 
+    elif number < 70:   # 60-70
+        color = (94,189 - (number-60) ,63 ) 
+    elif number < 80:   # 70-80
+        color = (21,147 - (number-70) ,47 )
+    elif number < 90:   # 80-90
+        color = (49 + (number-80),136 ,58 )
+    elif number < 100:  # 90-100
+        color = (122,155 + (number-90) ,50 )
+    elif number < 110:  # 100-110
+        color = (192,173 ,34 - (number-100) )
+    elif number < 120:  # 110-120
+        color = (230,173 - (number-110) ,4 )
+    elif number < 130:  # 120-130
+        color = (245,161 + (number-120) ,1 )
+    elif number < 140:  # 130-140
+        color = (255,194 - (number-130) ,5 )
+    elif number < 150:  # 140-150
+        color = (255,147 - (number-140),74 )
+    elif number < 160:  # 150-160
+        color = (225 - (number-150),122 ,71 )
+    elif number < 170:  # 160-170
+        color = (202 - (number-160),89 ,75 )
+    elif number < 180:  # 170-180
+        color = (193,60 + (number-170) ,1 )
+    elif number < 190:  # 180-190
+        color = (117 + (number-180),66 ,21 )
+    elif number < 200:  # 190-200
+        color = (137 + (number-190),99 ,76 )
+    elif number < 210:  #200-210
+        color = (164 + (number-200),142 ,121)
+    elif number < 220:  #210-220
+        color = (176 + number-210,176+ number-210 ,176+ number-210 )
+    elif number < 230: #220-230
+        color = (226 + number-220,226+number-220 ,226+number-220 )
+    elif number < 240: #230-240
+        color = (236+number-230,236+number-230 ,236+number-230 ) 
+    else:              #240-255
+        color = (236+number-240,236+number-240 ,236+number-240 ) 
+    return color
+
 def elastic_collision(sprite1, sprite2):
         """elasitc collision between 2 VectorSprites (calculated as disc's).
            The function alters the dx and dy movement vectors of both sprites.
@@ -115,6 +167,11 @@ class VectorSprite(pygame.sprite.Sprite):
             self._layer = 4
         else:
             self._layer = self.layer
+        if "zoom" not in kwargs:
+            self.zoom = 1
+        self.old_zoom = self.zoom # make copy!
+        if "name" not in kwargs:
+            self.name = None
         if "static" not in kwargs:
             self.static = False
         if "selected" not in kwargs:
@@ -200,18 +257,19 @@ class VectorSprite(pygame.sprite.Sprite):
     def create_image(self):
         if self.picture is not None:
             self.image = self.picture.copy()
+        elif self.name is not None:
+            self.image = Viewer.zoom_images[self.name][self.zoom]
+            self.image0 = self.image.copy()
         else:
             self.image = pygame.Surface((self.width,self.height))
             self.image.fill((self.color))
-        self.image = self.image.convert_alpha()
+            self.image = self.image.convert_alpha()
         self.image0 = self.image.copy()
         self.rect= self.image.get_rect()
         self.width = self.rect.width
         self.height = self.rect.height
     
-    def make_images(self):
-        """fills the dict self.images for the zoom keys from -3 to 3, where 3 is the biggest images and 1 the default zoom level"""
-        
+
     
     def rotate_to(self, final_degree):
         if final_degree < self.angle:
@@ -317,34 +375,23 @@ class VectorSprite(pygame.sprite.Sprite):
 class Turret(VectorSprite):
     
     def _overwrite_parameters(self):
-        #self.worldpos = pygame.math.Vector2(self.pos.x, self.pos.y)
-        #self.images = [] # list of images, biggest first, than always zoomed out
-        self.original_width = 64
-        self.original_height = 64
-        self.name = "catapult"
-        self.z = int(self.z)
+        self.name = "tower"
+        self._layer = 3
+        #self.z = int(self.z)
+       
 
         
-    def create_image(self):
-        """create biggest possible image"""
-        #self.image = pygame.surface.Surface((self.original_width, self.original_height))
-        #pygame.draw.circle(self.image, (128,0,128), (self.original_width //2, self.original_height // 2), self.original_width//2)
-        #self.image.set_colorkey((0,0,0))
-        #self.image.convert_alpha()
-        self.image = Viewer.images[self.name]
-        self.image0 = self.image.copy()
-        self.rect = self.image.get_rect()
-        img = self.image.copy()
-        self.make_images()
-        
     def update(self, seconds):
-        if random.random() < 0.01:
-            self.rotate(random.choice((-3,-2,-1,-1,0,1,1,2,3)))
-        VectorSprite.update(self, seconds)
-        if random.random() < 0.01:
-            m = pygame.math.Vector2(100,0)
-            m.rotate_ip(self.angle)
-            Rock(pos=pygame.math.Vector2(self.pos.x, self.pos.y), move=m, max_distance=1000, angle=self.angle, start_z=self.z+20, bossnumber=self.number)
+        if self.old_zoom != self.zoom:
+            self.create_image()
+        self.old_zoom = self.zoom
+        #if random.random() < 0.01:
+        #    self.rotate(random.choice((-3,-2,-1,-1,0,1,1,2,3)))
+        #VectorSprite.update(self, seconds)
+        #if random.random() < 0.01:
+        #    m = pygame.math.Vector2(100,0)
+        #    m.rotate_ip(self.angle)
+        #    Rock(pos=pygame.math.Vector2(self.pos.x, self.pos.y), move=m, max_distance=1000, angle=self.angle, start_z=self.z+20, bossnumber=self.number)
       
 
 
@@ -354,14 +401,12 @@ class Javelin(VectorSprite):
         self.speed = 150
         self.start_z = int(self.start_z)
         self.name = "javelin"
- 
-        
-    def create_image(self):
-        self.image = Viewer.images[self.name]
-        self.image0 = self.image.copy()
-        self.rect = self.image.get_rect()
-        img = self.image.copy()
-        self.make_images()
+
+    def update(self, seconds):
+        if self.old_zoom != self.zoom:
+            self.create_image()
+        self.old_zoom = self.zoom
+        VectorSprite.update(self, seconds)
 
 
 class Rock(VectorSprite):
@@ -370,14 +415,15 @@ class Rock(VectorSprite):
         self.speed = 150
         self.start_z = int(self.start_z)
         self.name = "rock"
+        self_layer = 6
  
-        
-    def create_image(self):
-        self.image = Viewer.images[self.name]
-        self.image0 = self.image.copy()
-        self.rect = self.image.get_rect()
-        img = self.image.copy()
-        self.make_images()
+ 
+    def update(self, seconds):
+        if self.old_zoom != self.zoom:
+            self.create_image()
+        self.old_zoom = self.zoom
+        VectorSprite.update(self, seconds)
+
                 
 
 class Cannonball(VectorSprite):
@@ -474,12 +520,12 @@ class Ballista(VectorSprite):
 
 class Tile(VectorSprite):
     
-    def _overwrite_parameters(self):
-        
-        if self.colorchar in Viewer.legend:
-            self.color = Viewer.legend[self.colorchar]
-        else:
-            self.color = (255,193,203)
+    #def _overwrite_parameters(self):
+    #    
+    #    if self.colorchar in Viewer.legend:
+    #        self.color = Viewer.legend[self.colorchar]
+    #    else:
+    #        self.color = (255,193,203)
                       
         
     def create_image(self):
@@ -494,52 +540,31 @@ class Tile(VectorSprite):
 class Catapult(VectorSprite):
     
     def _overwrite_parameters(self):
-        self.kill_on_edge = False
-        self.survive_north = True
-        #self.pos.y = -Viewer.height //2
-        #self.pos.x = Viewer.width //2
+        self.name = "catapult"
+        #self.z = int(self.z)
+        self._layer = 4
+        print("Catapult created")
        
-        self.imagenames = ["catapult1"]
-        self.speed  = 7
-        self.turnspeed = 0.5
-            
-            
-    def create_image(self):
-        self.image=Viewer.images["catapult1"]
-        
-        self.image0 = self.image.copy()
-       # self.image0.set_colorkey((0,0,0))
-       # self.image0.convert_alpha()
-        self.rect = self.image.get_rect()
 
-    def kill(self):
-        Explosion(posvector=self.pos, red=200, red_delta=25, minsparks=500, maxsparks=600, maxlifetime=7)
-        VectorSprite.kill(self)
-   
-   
-    def update(self,seconds):
-        VectorSprite.update(self,seconds)
-        # - - - - - - go to mouse cursor ------ #
-        target = mouseVector()
-        dist =target - self.pos
-        try:
-            dist.normalize_ip() #schrupmft ihn zur länge 1
-        except:
-            print("i could not normalize", dist)
-            return
-        dist *= self.speed  
-        rightvector = pygame.math.Vector2(1,0)
-        angle = -dist.angle_to(rightvector)
-        #print(angle)
-        #if self.angle == round(angle, 0):
-        if self.selected:
-            self.move = dist
-            self.set_angle(angle)
-            pygame.draw.rect(self.image, (0,200,0), (0,0,self.rect.width, self.rect.height),1)
+        
+    def update(self, seconds):
+        if self.old_zoom != self.zoom:
+            self.create_image()
+        self.old_zoom = self.zoom
+        if random.random() < 0.01:
+            self.rotate(random.choice((-3,-2,-1,-1,0,1,1,2,3)))
+        VectorSprite.update(self, seconds)
+        if random.random() < 0.01:
+            m = pygame.math.Vector2(100,0)
+            m.rotate_ip(self.angle)
+            Rock(pos=pygame.math.Vector2(self.pos.x, self.pos.y), move=m, max_distance=1000, angle=self.angle, start_z=self.z+20, bossnumber=self.number, zoom=self.zoom)
+      
 
 
 
 class Swordgoblin(VectorSprite):
+    
+
     
     def new_move(self):
         self.angle = random.randint(0,360)
@@ -557,19 +582,22 @@ class Swordgoblin(VectorSprite):
         self.name = "swordgoblin"
         self.z = 200
         #self.z = int(self.z)    
-    def create_image(self):
-        self.image=Viewer.images["swordgoblin"]
-        self.image0 = self.image.copy()
-        self.rect = self.image.get_rect()
+
+
         
     def update(self,seconds):
+        
+        if self.old_zoom != self.zoom:
+            self.create_image()
+        self.old_zoom = self.zoom
+
         VectorSprite.update(self,seconds)
         if random.random() < 0.002:
             self.new_move()
         if random.random() < 0.01:
             m = pygame.math.Vector2(100,0)
             m.rotate_ip(self.angle)
-            Javelin(pos=pygame.math.Vector2(self.pos.x, self.pos.y), move=m, max_distance=1000, angle=self.angle, start_z=self.z+20, bossnumber=self.number)
+            Javelin(pos=pygame.math.Vector2(self.pos.x, self.pos.y), move=m, max_distance=1000, angle=self.angle, start_z=self.z+20, bossnumber=self.number, zoom=self.zoom)
       
 
             
@@ -580,16 +608,17 @@ class Tent(VectorSprite):
         self.spawn = 0
         self.name = "Tent"
         
-    def create_image(self):
-        self.image = Viewer.images["Tent"]
-        self.image0 = self.image.copy()
-        self.rect = self.image.get_rect()
         
     def update(self,seconds):
+        
+        if self.old_zoom != self.zoom:
+            self.create_image()
+        self.old_zoom = self.zoom
+
         VectorSprite.update(self,seconds)
         self.spawn += seconds
         if self.spawn > self.spawntime:
-            Swordgoblin(pos=pygame.math.Vector2(self.pos.x, self.pos.y))
+            Swordgoblin(pos=pygame.math.Vector2(self.pos.x, self.pos.y), zoom=self.zoom)
             self.spawn = 0
 
 
@@ -662,7 +691,7 @@ class Viewer(object):
     world_height = 0
     tilesize = 32
     images = {}
-    imageszoom = {}
+    zoom_images = {}
     sounds = {}
     menu = {#main
             "main":               ["resume", "map", "settings", "credits", "quit" ],
@@ -687,13 +716,13 @@ class Viewer(object):
             }
     
     
-    legend = {".": ( 0,0,255),
-              "a": (173,216,230),
-              "b": (229,229,229),
-              "c": (191,191,191),
-              "d": (144,238,144),
-              "e": (0,128,0)
-                  }
+    #legend = {".": ( 0,0,255),
+    #          "a": (173,216,230),
+    #          "b": (229,229,229),
+    #          "c": (191,191,191),
+    #          "d": (144,238,144),
+    #          "e": (0,128,0)
+    #              }
     
     #Viewer.menu["resolution"] = pygame.display.list_modes()
     history = ["main"]
@@ -822,23 +851,21 @@ class Viewer(object):
             Viewer.images["Tent"]= pygame.image.load(os.path.join("data", "tent1.png")).convert_alpha()
             Viewer.images["swordgoblin"]= pygame.image.load(os.path.join("data" , "swordgoblin.png")).convert_alpha()
             Viewer.images["javelin"] = pygame.image.load(os.path.join("data", "javelin.png")).convert_alpha()
+            Viewer.images["tower"] = pygame.image.load(os.path.join("data", "tower.png")).convert_alpha()
             # --- scalieren ---
                        
             
             
     def zoom_sprites(self):
+        """create keys of image name in the dict and as values the smaller images (zoom value 4,3,2,1,0,-1,-2,-3)"""
         for name, image in Viewer.images.items():
-            Viewer.imageszoom[name] = {}
-            # TODO hier weitermachen
+            Viewer.zoom_images[name] = {}
             i = image.copy()
-            for z in range(3, -4, -1):
-                Viewer.imageszoom[name][z] = i.copy()
-                i = pygame.transform.rotozoom(i, 0.0, 0.5)
+            for z in range(4, -4, -1):
+                Viewer.zoom_images[name][z] = i.copy()
+                i = pygame.transform.rotozoom(i, 0.0, 0.5)    # half size image
                 
-                
-            
-        
-     
+    
     def prepare_sprites(self):
         """painting on the surface and create sprites"""
         self.load_sprites()
@@ -856,6 +883,9 @@ class Viewer(object):
         Javelin.groups = self.allgroup, self.worldgroup, self.bulletgroup
         Flytext.groups = self.allgroup, self.flytextgroup
         Turret.groups = self.allgroup, self.worldgroup, self.radargroup
+        Catapult.groups = self.allgroup, self.worldgroup
+        Rock.groups = self.allgroup, self.worldgroup, self.bulletgroup
+        Javelin.groups = self.allgroup, self.worldgroup, self.bulletgroup
         Tent.groups = self.allgroup , self.worldgroup
         Swordgoblin.groups = self.allgroup, self.worldgroup, self.swordgoblingroup
         #Catapult.groups = self.allgroup,
@@ -875,11 +905,12 @@ class Viewer(object):
             Tent(pos=pygame.math.Vector2(x,-y))
         for (x,y) in ((200,300), (800,300), (800, 800), (200,800), (500,550)):
             tz = self.get_z(x,y)
-            Turret(pos=pygame.math.Vector2(x,-y), z=tz)
-            print("turret z", tz)
-        print("sprites created")
-        for s in self.allgroup:
-            print(s, s.number) 
+            Turret(pos=pygame.math.Vector2(x,-y), z=tz, zoom = 1)
+            Catapult(pos=pygame.math.Vector2(x,-y), z=tz+25, zoom = 1)
+            #print("turret z", tz)
+        #print("sprites created")
+        #for s in self.allgroup:
+        #    print(s, s.number) 
     
     
        
@@ -1104,54 +1135,7 @@ class Viewer(object):
                     number = int(number)
                     if number <= self.waterheight:
                         color = (0,0,255) # blue
-                    elif number < 10:    # 0-10
-                        color = (178, 240, 245-number)
-                    elif number < 30:    # 10-30
-                        color = (179 + (number-10),241 ,204 )
-                    elif number < 40:    # 30-40
-                        color = (195,247 ,173+ (number-30)) 
-                    elif number < 50:    # 40-50
-                        color = (231, 253-(number-40), 178) 
-                    elif number < 60:    # 50-60
-                        color = (195, 227-(number-50), 126) 
-                    elif number < 70:   # 60-70
-                        color = (94,189 - (number-60) ,63 ) 
-                    elif number < 80:   # 70-80
-                        color = (21,147 - (number-70) ,47 )
-                    elif number < 90:   # 80-90
-                        color = (49 + (number-80),136 ,58 )
-                    elif number < 100:  # 90-100
-                        color = (122,155 + (number-90) ,50 )
-                    elif number < 110:  # 100-110
-                        color = (192,173 ,34 - (number-100) )
-                    elif number < 120:  # 110-120
-                        color = (230,173 - (number-110) ,4 )
-                    elif number < 130:  # 120-130
-                        color = (245,161 + (number-120) ,1 )
-                    elif number < 140:  # 130-140
-                        color = (255,194 - (number-130) ,5 )
-                    elif number < 150:  # 140-150
-                        color = (255,147 - (number-140),74 )
-                    elif number < 160:  # 150-160
-                        color = (225 - (number-150),122 ,71 )
-                    elif number < 170:  # 160-170
-                        color = (202 - (number-160),89 ,75 )
-                    elif number < 180:  # 170-180
-                        color = (193,60 + (number-170) ,1 )
-                    elif number < 190:  # 180-190
-                        color = (117 + (number-180),66 ,21 )
-                    elif number < 200:  # 190-200
-                        color = (137 + (number-190),99 ,76 )
-                    elif number < 210:  #200-210
-                        color = (164 + (number-200),142 ,121)
-                    elif number < 220:  #210-220
-                        color = (176 + number-210,176+ number-210 ,176+ number-210 )
-                    elif number < 230: #220-230
-                        color = (226 + number-220,226+number-220 ,226+number-220 )
-                    elif number < 240: #230-240
-                        color = (236+number-230,236+number-230 ,236+number-230 ) 
-                    else:              #240-255
-                        color = (236+number-240,236+number-240 ,236+number-240 ) 
+                    color = get_height_color(number)
                     #print("x,dx, y,dy", x, dx, y, dy)
                     #print("rect start x, rect start y", (x+dx)*self.tilesize, (y+dy) * self.tilesize) 
                     pygame.draw.rect(self.world, color, ((x+dx) * self.tilesize, (y+dy) * self.tilesize, self.tilesize, self.tilesize))
@@ -1172,15 +1156,19 @@ class Viewer(object):
          x = int(xpos / self.tilesize)
          y = int(ypos / self.tilesize)
          try:
-             z = self.rawmap[-y][x]
+             z = int(self.rawmap[-y][x])
          except:
-             return None
+             return -1
          return z
     
     def worldzoom(self, delta):
         """incrase (delta=1) or decrease (delta=-1) worldzoom"""
         if delta not in [1,0,-1]:
             raise ValueError("delta of worldzoom must be 1 or -1 or 0")
+        if self.world_zoom + delta > 4:
+            return # out of range
+        if self.world_zoom + delta < -3:
+            return # out of range
         self.world_zoom += delta
         if delta == 1:
             factor = 2
@@ -1191,13 +1179,12 @@ class Viewer(object):
         Viewer.tilesize *= factor
         for o in self.worldgroup:
             o.pos *= factor
+            o.move *= factor
+            o.zoom = self.world_zoom
         self.make_worldmap() 
-        # --- zoom all sprites ----
-        for s in self.worldgroup:
-            s.image = Viewer.imageszoom[s.name][self.world_zoom]
-            s.image0 = s.image.copy()
         
-    
+        
+        
     def run(self):
         """The mainloop"""
         
@@ -1255,9 +1242,9 @@ class Viewer(object):
                     #if event.key == pygame.K_RIGHT:
                     #    self.b1.set_angle(self.b1.angle + 5)
                     #    self.c1.set_angle(self.c1.angle + 5)
-                    if event.key == pygame.K_s:
-                        self.b1.selected = not self.b1.selected
-                        self.c1.selected = not self.c1.selected 
+                    #if event.key == pygame.K_s:
+                    #    self.b1.selected = not self.b1.selected
+                    #    self.c1.selected = not self.c1.selected 
                     if event.key == pygame.K_SPACE:
                         p = pygame.math.Vector2(self.c1.pos.x, self.c1.pos.y)
                         m = pygame.math.Vector2(200,0)
@@ -1405,7 +1392,10 @@ class Viewer(object):
             
             # --- is a javelin (from bulletgroup) flown into a mountain ? -----
             for bu in self.bulletgroup:
-                z = int(self.get_z(bu.pos.x, bu.pos.y))
+                try:   # somtimes error that z can't be found or is a "\n" char instead value
+                    z = int(self.get_z(bu.pos.x, bu.pos.y))
+                except:
+                    continue 
                 if z > bu.start_z:
                     # bullet is inside a mountain
                     Explosion(posvector=bu.pos)
