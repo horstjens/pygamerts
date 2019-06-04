@@ -617,7 +617,7 @@ class Tent(VectorSprite):
     def _overwrite_parameters(self):
         self.spawntime = 5.0
         self.spawn = 0
-        self.name = "Tent"
+        self.name = "tent"
         
         
     def update(self,seconds):
@@ -855,7 +855,7 @@ class Viewer(object):
         
             Viewer.images["catapult"] = pygame.image.load(os.path.join("data", "catapult1.png")).convert_alpha()
             Viewer.images["rock"] = pygame.image.load(os.path.join("data", "rock.png")).convert_alpha()
-            Viewer.images["Tent"]= pygame.image.load(os.path.join("data", "tent1.png")).convert_alpha()
+            Viewer.images["tent"]= pygame.image.load(os.path.join("data", "tent1.png")).convert_alpha()
             Viewer.images["swordgoblin"]= pygame.image.load(os.path.join("data" , "swordgoblin.png")).convert_alpha()
             Viewer.images["javelin"] = pygame.image.load(os.path.join("data", "javelin.png")).convert_alpha()
             Viewer.images["tower"] = pygame.image.load(os.path.join("data", "tower.png")).convert_alpha()
@@ -1263,9 +1263,9 @@ class Viewer(object):
                         m = pygame.math.Vector2(200,0)
                         m.rotate_ip(self.c1.angle)
                         Cannonball(pos=p, move=m, bossnumber= self.c1.number)
-                    if event.key == pygame.K_PLUS:
+                    if event.key == pygame.K_PLUS or event.key == pygame.K_KP_PLUS:
                         self.worldzoom(1)
-                    if event.key == pygame.K_MINUS:
+                    if event.key == pygame.K_MINUS or event.key == pygame.K_KP_MINUS:
                         self.worldzoom(-1)
                     if event.key == pygame.K_h:
                         self.display_help()
