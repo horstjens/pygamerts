@@ -371,7 +371,18 @@ class VectorSprite(pygame.sprite.Sprite):
             elif self.warp_on_edge:
                 self.pos.y = 0
 
-
+class Wall(VectorSprite):
+    
+    def _overwrite_parameters(self):
+        self.name = "wall"
+        self._layer = 3
+        #self.z = int(self.z)
+        
+    def update(self, seconds):
+        if self.old_zoom != self.zoom:
+            self.create_image()
+        self.old_zoom = self.zoom
+    
 class Turret(VectorSprite):
     
     def _overwrite_parameters(self):
@@ -841,23 +852,21 @@ class Viewer(object):
     def load_sprites(self):
             """ all sprites that can rotate MUST look to the right. Edit Image files manually if necessary!"""
             print("loading sprites from 'data' folder....")
-            #Viewer.images["catapult1"]= pygame.image.load(
-            #     os.path.join("data", "catapultC1.png")).convert_alpha()
-            
-            ##self.create_selected("catapult1")
-            
+        
             Viewer.images["catapult"] = pygame.image.load(os.path.join("data", "catapult1.png")).convert_alpha()
             Viewer.images["rock"] = pygame.image.load(os.path.join("data", "rock.png")).convert_alpha()
             Viewer.images["Tent"]= pygame.image.load(os.path.join("data", "tent1.png")).convert_alpha()
             Viewer.images["swordgoblin"]= pygame.image.load(os.path.join("data" , "swordgoblin.png")).convert_alpha()
             Viewer.images["javelin"] = pygame.image.load(os.path.join("data", "javelin.png")).convert_alpha()
             Viewer.images["tower"] = pygame.image.load(os.path.join("data", "tower.png")).convert_alpha()
-            # --- scalieren ---
+            Viewer.images["wall"] = pygame.image.load(os.path.join("data", "wall.png")).convert_alpha()
+            
                        
             
             
     def zoom_sprites(self):
         """create keys of image name in the dict and as values the smaller images (zoom value 4,3,2,1,0,-1,-2,-3)"""
+        # --- scalieren ---
         for name, image in Viewer.images.items():
             Viewer.zoom_images[name] = {}
             i = image.copy()
@@ -883,6 +892,7 @@ class Viewer(object):
         Javelin.groups = self.allgroup, self.worldgroup, self.bulletgroup
         Flytext.groups = self.allgroup, self.flytextgroup
         Turret.groups = self.allgroup, self.worldgroup, self.radargroup
+        Wall.groups = self.allgroup, self.worldgroup, self.radargroup
         Catapult.groups = self.allgroup, self.worldgroup
         Rock.groups = self.allgroup, self.worldgroup, self.bulletgroup
         Javelin.groups = self.allgroup, self.worldgroup, self.bulletgroup
@@ -903,6 +913,9 @@ class Viewer(object):
          
         for (x,y) in ((1800,2800), (300,320)):
             Tent(pos=pygame.math.Vector2(x,-y))
+        for (x,y) in ((250,300), (300,300), (350,300), (400,300), (450,300)):
+            tz = self.get_z(x,y)
+            Wall(pos=pygame.math.Vector2(x,-y), z=tz, zoom=1)
         for (x,y) in ((200,300), (800,300), (800, 800), (200,800), (500,550)):
             tz = self.get_z(x,y)
             Turret(pos=pygame.math.Vector2(x,-y), z=tz, zoom = 1)
