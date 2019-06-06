@@ -31,7 +31,7 @@ def make_text(msg="pygame is cool", fontcolor=(255, 0, 255), fontsize=42, font=N
 def write(background, text="bla", pos=None, color=(0,0,0),
           fontsize=None, center=False, x=None, y=None):
         """write text on pygame surface. pos is a 2d Vector """
-        if pos is None and (x is None or y is None):
+        if pos is None and (x is None and y is None):
             print("Error with write function: no pos argument given and also no x and y:", pos, x, y)
             return
         if pos is not None:
@@ -575,8 +575,19 @@ class Catapult(VectorSprite):
 
 class Swordgoblin(VectorSprite):
     
-
     
+    def _overwrite_parameters(self):
+        self._layer = 6
+        #self.speed = 75
+        #self.new_move()
+        #self.bounce_on_edge = True
+        max_age = 5
+        self.name = "swordgoblin"
+        self.z = 200
+        self.guarding_range = 100
+        #self.z = int(self.z)    
+
+
     def new_move(self):
         self.angle = random.randint(0,360)
         self.speed = random.randint(40,140)
@@ -584,18 +595,22 @@ class Swordgoblin(VectorSprite):
         self.move.rotate_ip(self.angle)
         self.set_angle(self.angle)
         
-    
-    def _overwrite_parameters(self):
-        #self.speed = 75
-        #self.new_move()
-        #self.bounce_on_edge = True
-        max_age = 5
-        self.name = "swordgoblin"
-        self.z = 200
-        #self.z = int(self.z)    
-
-
         
+    
+    def guarding(self):
+        if self.bossnumber not in VectorSprite.numbers:
+            # has no Tent to guarding anymore
+            return
+        bosspos = VectorSprite.numbers[self.bossnumber].pos
+        dist =  self.pos - bosspos
+        if dist.length() > self.guarding_range:
+            # rotate move vector to boss
+            angle = dist.angle_to(pygame.math.Vector2(1,0))
+            self.move = pygame.math.Vector2(100, 0)
+            self.move.rotate_ip(-angle+180)
+            self.set_angle(-angle+180)
+        
+    
     def update(self,seconds):
         
         if self.old_zoom != self.zoom:
@@ -609,12 +624,13 @@ class Swordgoblin(VectorSprite):
             m = pygame.math.Vector2(100,0)
             m.rotate_ip(self.angle)
             Javelin(pos=pygame.math.Vector2(self.pos.x, self.pos.y), move=m, max_distance=1000, angle=self.angle, start_z=self.z+20, bossnumber=self.number, zoom=self.zoom)
-      
+        self.guarding() 
 
             
 class Tent(VectorSprite):
     
     def _overwrite_parameters(self):
+        self._layer = 7
         self.spawntime = 5.0
         self.spawn = 0
         self.name = "tent"
@@ -629,7 +645,9 @@ class Tent(VectorSprite):
         VectorSprite.update(self,seconds)
         self.spawn += seconds
         if self.spawn > self.spawntime:
-            Swordgoblin(pos=pygame.math.Vector2(self.pos.x, self.pos.y), zoom=self.zoom)
+            Swordgoblin(pos=pygame.math.Vector2(self.pos.x,
+                        self.pos.y), zoom=self.zoom,
+                        bossnumber=self.number)
             self.spawn = 0
 
 
@@ -913,7 +931,8 @@ class Viewer(object):
          
         for (x,y) in ((1800,2800), (300,320)):
             Tent(pos=pygame.math.Vector2(x,-y))
-        for (x,y) in ((250,300), (300,300), (350,300), (400,300), (450,300)):
+        for x in range(250, 801, 50):
+            y = 300
             tz = self.get_z(x,y)
             Wall(pos=pygame.math.Vector2(x,-y), z=tz, zoom=1)
         for (x,y) in ((200,300), (800,300), (800, 800), (200,800), (500,550)):
